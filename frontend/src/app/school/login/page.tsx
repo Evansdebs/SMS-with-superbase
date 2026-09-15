@@ -146,6 +146,42 @@ function SchoolLoginForm() {
           </Button>
         </form>
 
+        {/* Test / Demo Credentials Quick-Fill */}
+        <div className="mt-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs space-y-2">
+          <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
+            <span className="font-semibold text-slate-800 dark:text-slate-200">Test School Accounts:</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                setSchoolCode('TLS001');
+                setEmail('admin@school.edu.gh');
+                setPassword('password');
+              }}
+              className="px-2 py-1.5 rounded text-left border border-slate-200 dark:border-slate-800 hover:border-indigo-500 bg-white dark:bg-slate-900 text-[11px] transition-colors"
+            >
+              <div className="font-semibold text-slate-800 dark:text-slate-200">School Admin</div>
+              <div className="text-[10px] text-slate-500 font-mono">TLS001 • admin</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSchoolCode('TLS001');
+                setEmail('teacher@school.edu.gh');
+                setPassword('password');
+              }}
+              className="px-2 py-1.5 rounded text-left border border-slate-200 dark:border-slate-800 hover:border-indigo-500 bg-white dark:bg-slate-900 text-[11px] transition-colors"
+            >
+              <div className="font-semibold text-slate-800 dark:text-slate-200">Teacher</div>
+              <div className="text-[10px] text-slate-500 font-mono">TLS001 • teacher</div>
+            </button>
+          </div>
+          <div className="text-[10px] text-slate-500 pt-0.5">
+            Default test password: <span className="font-mono text-slate-700 dark:text-slate-300">password</span>
+          </div>
+        </div>
+
         <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
           <Link href="/" className="hover:text-slate-900 dark:hover:text-white transition-colors">
             ← Platform Home

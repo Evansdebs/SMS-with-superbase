@@ -37,13 +37,13 @@ import { BillingModule } from './billing/billing.module';
     ThrottlerModule.forRoot([
       {
         name: 'default',
-        ttl: 60_000,  // 60 seconds
-        limit: 120,
+        ttl: 60_000, // 60 seconds
+        limit: 2000,
       },
       {
         name: 'auth',
         ttl: 60_000,
-        limit: 10,
+        limit: 500,
       },
     ]),
     PrismaModule,

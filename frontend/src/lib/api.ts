@@ -1,6 +1,7 @@
 // Frontend API Client with tenant scoping, retry with exponential backoff, and timeout resilience
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const rawBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = rawBase.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '') + '/api/v1';
 
 export interface AuthSession {
   token?: string;

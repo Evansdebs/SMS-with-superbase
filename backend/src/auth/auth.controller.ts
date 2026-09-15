@@ -20,7 +20,7 @@ export class AuthController {
    * SuperAdmin login — strict rate limit: 10 requests / 60 s per IP.
    * Brute-force protection against credential stuffing.
    */
-  @Post('super-admin/login')
+  @Post(['super-admin/login', 'admin/login'])
   @HttpCode(HttpStatus.OK)
   @Throttle({ auth: { ttl: 60_000, limit: 10 } })
   @ApiOperation({ summary: 'SuperAdmin login' })

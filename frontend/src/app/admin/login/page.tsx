@@ -112,6 +112,27 @@ export default function AdminLogin() {
             </Button>
           </form>
 
+          {/* Test / Demo Credentials Quick-Fill */}
+          <div className="mt-4 p-3 rounded-lg bg-slate-950/80 border border-slate-800 text-xs space-y-2">
+            <div className="flex items-center justify-between text-slate-400">
+              <span className="font-semibold text-slate-300">Test Super Admin Credentials:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@platform.com');
+                  setPassword('Admin@123456');
+                }}
+                className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium underline"
+              >
+                Auto-fill
+              </button>
+            </div>
+            <div className="font-mono text-[11px] text-slate-400 space-y-0.5">
+              <div>Email: <span className="text-slate-200">admin@platform.com</span></div>
+              <div>Password: <span className="text-slate-200">Admin@123456</span></div>
+            </div>
+          </div>
+
           <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
             <Link href="/" className="hover:text-white transition-colors">
               ← Platform Home
