@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { RolesService } from '../roles/roles.service';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +12,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private rolesService: RolesService,
   ) {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
     const supabaseAnonKey = this.configService.get<string>('SUPABASE_ANON_KEY');
@@ -177,19 +179,43 @@ export class AuthService {
 
     if (isDevOrPlaceholder) {
       const devUserId = '11111111-1111-1111-1111-111111111111';
+      const devSchoolId = '22222222-2222-2222-2222-222222222222';
       const normalizedEmail = email.toLowerCase();
       let role = 'SCHOOL_ADMIN';
       let firstName = 'School';
       if (normalizedEmail.includes('teacher')) {
         role = 'TEACHER';
         firstName = 'Lead';
-      } else if (normalizedEmail.includes('parent')) {
+      } else if (normalizedEmail.includes('accountant') || normalizedEmail.includes('bursar')) {
+        role = 'ACCOUNTANT';
+        firstName = 'Finance';
+      } else if (normalizedEmail.includes('librarian') || normalizedEmail.includes('library')) {
+        role = 'LIBRARIAN';
+        firstName = 'Library';
+      } else if (normalizedEmail.includes('health') || normalizedEmail.includes('nurse')) {
+        role = 'HEALTH_OFFICER';
+        firstName = 'Health';
+      } else if (normalizedEmail.includes('transport') || normalizedEmail.includes('bus')) {
+        role = 'TRANSPORT_OFFICER';
+        firstName = 'Transport';
+      } else if (normalizedEmail.includes('discipline')) {
+        role = 'DISCIPLINE_MASTER';
+        firstName = 'Discipline';
+      } else if (normalizedEmail.includes('staff')) {
+        role = 'GENERAL_STAFF';
+        firstName = 'Office';
+      } else if (normalizedEmail.includes('parent') || normalizedEmail.includes('guardian')) {
         role = 'PARENT';
         firstName = 'Guardian';
       } else if (normalizedEmail.includes('student')) {
         role = 'STUDENT';
         firstName = 'Student';
       }
+
+      const effectivePermissions = await this.rolesService.getEffectiveUserPermissions(
+        devSchoolId,
+        role,
+      );
 
       return {
         access_token: `dev-token:${devUserId}`,
@@ -203,13 +229,13 @@ export class AuthService {
             lastName: role === 'SCHOOL_ADMIN' ? 'Admin' : 'User',
           },
           school: {
-            id: '22222222-2222-2222-2222-222222222222',
+            id: devSchoolId,
             name: code === 'TLS001' ? 'The Living Spring School' : `${code} Academy`,
             schoolCode: code,
           },
           membership: {
             profile: role,
-            permissions: ['*'],
+            permissions: effectivePermissions,
           },
         },
       };
@@ -290,10 +316,18 @@ export class AuthService {
         },
         membership: {
           profile: membership.profile,
-          permissions: membership.permissions,
+          permissions: await this.rolesService.getEffectiveUserPermissions(
+            school.id,
+            membership.profile,
+            membership.permissions,
+          ),
         },
       },
     };
+  }
+
+  async getEffectivePermissions(schoolId: string, profile: string, customPermissions?: any): Promise<string[]> {
+    return this.rolesService.getEffectiveUserPermissions(schoolId, profile, customPermissions);
   }
 
   async generateSchoolCode(schoolName: string): Promise<string> {

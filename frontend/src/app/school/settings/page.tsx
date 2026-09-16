@@ -460,6 +460,29 @@ export default function SchoolSettingsPage() {
                   </Badge>
                 </div>
               </div>
+
+              {/* Roles & Permissions Quick Card */}
+              <a
+                href="/school/roles"
+                className="flex items-center justify-between p-4 mt-2 bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/40 dark:to-blue-950/30 border border-indigo-200 dark:border-indigo-900 rounded-xl hover:shadow-md transition-all group cursor-pointer"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="h-9 w-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm group-hover:bg-indigo-700 transition-colors">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-indigo-900 dark:text-indigo-200 text-xs">
+                      Roles & Functionalities Manager
+                    </div>
+                    <div className="text-slate-500 dark:text-slate-400 text-[11px] mt-0.5">
+                      Configure which features each staff role can access across your school portal.
+                    </div>
+                  </div>
+                </div>
+                <div className="text-indigo-500 font-semibold text-xs group-hover:translate-x-0.5 transition-transform">
+                  Open →
+                </div>
+              </a>
             </CardContent>
           </Card>
         )}

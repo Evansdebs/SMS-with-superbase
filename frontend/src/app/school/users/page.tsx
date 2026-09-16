@@ -115,13 +115,25 @@ export default function SchoolUsersPage() {
             </p>
           </div>
 
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 shadow-sm"
-          >
-            <UserPlus className="h-4 w-4 mr-1.5" />
-            Invite Staff Member
-          </Button>
+          <div className="flex items-center space-x-2.5">
+            <Link href="/school/roles">
+              <Button
+                variant="outline"
+                className="text-xs h-9 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium"
+              >
+                <ShieldCheck className="h-4 w-4 mr-1.5 text-blue-600 dark:text-blue-400" />
+                Manage Role Functionalities
+              </Button>
+            </Link>
+
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 shadow-sm"
+            >
+              <UserPlus className="h-4 w-4 mr-1.5" />
+              Invite Staff Member
+            </Button>
+          </div>
         </div>
 
         {/* Search */}

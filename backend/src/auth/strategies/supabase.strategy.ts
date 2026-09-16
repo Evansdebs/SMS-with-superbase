@@ -63,6 +63,12 @@ export class SupabaseStrategy extends PassportStrategy(Strategy, 'jwt') {
       }
     }
 
+    const effectivePermissions = await this.authService.getEffectivePermissions(
+      currentMembership.schoolId,
+      currentMembership.profile,
+      currentMembership.permissions,
+    );
+
     return {
       id: user.id,
       email: user.email,
@@ -72,7 +78,7 @@ export class SupabaseStrategy extends PassportStrategy(Strategy, 'jwt') {
       schoolId: currentMembership.schoolId,
       schoolCode: currentMembership.school?.schoolCode,
       membershipProfile: currentMembership.profile,
-      permissions: (currentMembership.permissions as any) || [],
+      permissions: effectivePermissions,
     };
   }
 

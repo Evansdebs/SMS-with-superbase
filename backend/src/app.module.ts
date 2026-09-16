@@ -25,6 +25,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { TransportModule } from './transport/transport.module';
 import { HrModule } from './hr/hr.module';
 import { BillingModule } from './billing/billing.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { BillingModule } from './billing/billing.module';
     TransportModule,
     HrModule,
     BillingModule,
+    RolesModule,
   ],
   controllers: [],
   providers: [

@@ -29,6 +29,7 @@ import {
   Settings,
   LogOut,
   X,
+  ShieldCheck,
   Building2,
   ChevronRight,
 } from 'lucide-react';
@@ -41,14 +42,17 @@ interface SchoolSidebarProps {
   onMobileClose: () => void;
 }
 
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  requiredPermission?: string;
+}
+
 interface NavGroup {
   label: string;
-  items: {
-    name: string;
-    href: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge?: string;
-  }[];
+  items: NavItem[];
 }
 
 const navGroups: NavGroup[] = [
@@ -56,43 +60,44 @@ const navGroups: NavGroup[] = [
     label: 'Overview',
     items: [
       { name: 'Dashboard', href: '/school/dashboard', icon: LayoutDashboard },
-      { name: 'Analytics', href: '/school/analytics', icon: BarChart3 },
+      { name: 'Analytics', href: '/school/analytics', icon: BarChart3, requiredPermission: 'students.view' },
     ],
   },
   {
     label: 'Academics',
     items: [
-      { name: 'Students', href: '/school/students', icon: GraduationCap },
-      { name: 'Teachers & Staff', href: '/school/teachers', icon: UserCheck },
-      { name: 'Classes & Subjects', href: '/school/academics', icon: BookOpen },
-      { name: 'Timetable', href: '/school/timetable', icon: Clock },
-      { name: 'Assignments', href: '/school/assignments', icon: FileText },
-      { name: 'Attendance Register', href: '/school/attendance', icon: ClipboardCheck },
-      { name: 'Results & Stanine', href: '/school/results', icon: Award },
-      { name: 'Report Cards', href: '/school/report-cards', icon: FileSpreadsheet },
+      { name: 'Students', href: '/school/students', icon: GraduationCap, requiredPermission: 'students.view' },
+      { name: 'Teachers & Staff', href: '/school/teachers', icon: UserCheck, requiredPermission: 'teachers.view' },
+      { name: 'Classes & Subjects', href: '/school/academics', icon: BookOpen, requiredPermission: 'academics.view' },
+      { name: 'Timetable', href: '/school/timetable', icon: Clock, requiredPermission: 'timetable.view' },
+      { name: 'Assignments', href: '/school/assignments', icon: FileText, requiredPermission: 'assignments.view' },
+      { name: 'Attendance Register', href: '/school/attendance', icon: ClipboardCheck, requiredPermission: 'attendance.view' },
+      { name: 'Results & Stanine', href: '/school/results', icon: Award, requiredPermission: 'results.view' },
+      { name: 'Report Cards', href: '/school/report-cards', icon: FileSpreadsheet, requiredPermission: 'results.view' },
     ],
   },
   {
     label: 'Operations & Services',
     items: [
-      { name: 'Parent Directory', href: '/school/parents', icon: HeartHandshake },
-      { name: 'Discipline / Conduct', href: '/school/discipline', icon: AlertTriangle },
-      { name: 'Health / Sick Bay', href: '/school/health', icon: Stethoscope },
-      { name: 'Library System', href: '/school/library', icon: Library },
-      { name: 'Inventory & Assets', href: '/school/inventory', icon: Package },
-      { name: 'Transport Fleet', href: '/school/transport', icon: Bus },
-      { name: 'HR & Staff Leave', href: '/school/hr', icon: UserCog },
+      { name: 'Parent Directory', href: '/school/parents', icon: HeartHandshake, requiredPermission: 'parents.view' },
+      { name: 'Discipline / Conduct', href: '/school/discipline', icon: AlertTriangle, requiredPermission: 'discipline.view' },
+      { name: 'Health / Sick Bay', href: '/school/health', icon: Stethoscope, requiredPermission: 'health.view' },
+      { name: 'Library System', href: '/school/library', icon: Library, requiredPermission: 'library.view' },
+      { name: 'Inventory & Assets', href: '/school/inventory', icon: Package, requiredPermission: 'inventory.view' },
+      { name: 'Transport Fleet', href: '/school/transport', icon: Bus, requiredPermission: 'transport.view' },
+      { name: 'HR & Staff Leave', href: '/school/hr', icon: UserCog, requiredPermission: 'hr.apply' },
     ],
   },
   {
     label: 'Administration & Finance',
     items: [
-      { name: 'Fee Collections', href: '/school/fees', icon: DollarSign },
-      { name: 'School Billing', href: '/school/billing', icon: CreditCard },
-      { name: 'Documents Vault', href: '/school/documents', icon: FolderOpen },
-      { name: 'Notice Board', href: '/school/announcements', icon: Bell },
-      { name: 'Term Calendar', href: '/school/calendar', icon: Calendar },
-      { name: 'School Settings', href: '/school/settings', icon: Settings },
+      { name: 'Fee Collections', href: '/school/fees', icon: DollarSign, requiredPermission: 'fees.view' },
+      { name: 'School Billing', href: '/school/billing', icon: CreditCard, requiredPermission: 'billing.manage' },
+      { name: 'Documents Vault', href: '/school/documents', icon: FolderOpen, requiredPermission: 'documents.view' },
+      { name: 'Notice Board', href: '/school/announcements', icon: Bell, requiredPermission: 'announcements.view' },
+      { name: 'Term Calendar', href: '/school/calendar', icon: Calendar, requiredPermission: 'calendar.view' },
+      { name: 'Roles & Permissions', href: '/school/roles', icon: ShieldCheck, requiredPermission: 'roles.manage' },
+      { name: 'School Settings', href: '/school/settings', icon: Settings, requiredPermission: 'settings.manage' },
     ],
   },
 ];
@@ -103,6 +108,25 @@ export function SchoolSidebar({ session, mobileOpen, onMobileClose }: SchoolSide
 
   const school = session?.user?.school;
   const user = session?.user;
+
+  const userPermissions: string[] = Array.isArray(user?.membership?.permissions)
+    ? user.membership.permissions
+    : [];
+  const isSuperAdmin = user?.accountType === 'SUPER_ADMIN';
+  const isSchoolAdmin = user?.membership?.profile === 'SCHOOL_ADMIN' || userPermissions.includes('*');
+
+  const hasAccess = (requiredPermission?: string) => {
+    if (!requiredPermission) return true;
+    if (isSuperAdmin || isSchoolAdmin) return true;
+    return userPermissions.includes(requiredPermission);
+  };
+
+  const visibleNavGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => hasAccess(item.requiredPermission)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const handleLogout = () => {
     clearStoredSession();
@@ -145,7 +169,7 @@ export function SchoolSidebar({ session, mobileOpen, onMobileClose }: SchoolSide
 
       {/* Navigation Groups (Scrollable) */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scrollbar-thin scrollbar-thumb-slate-800">
-        {navGroups.map((group) => (
+        {visibleNavGroups.map((group) => (
           <div key={group.label}>
             <div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               {group.label}
