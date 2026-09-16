@@ -9,24 +9,34 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { TransportService } from './transport.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SchoolMembershipGuard } from '../common/guards/school-membership.guard';
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CurrentTenant } from '../common/decorators/tenant.decorator';
+import { TenantContext } from '../common/interfaces/tenant-context.interface';
 
+@ApiTags('Transport')
+@ApiBearerAuth('JWT')
 @Controller('transport')
-@UseGuards(JwtAuthGuard, SchoolMembershipGuard)
+@UseGuards(JwtAuthGuard, SchoolMembershipGuard, PermissionsGuard)
 export class TransportController {
   constructor(private readonly transportService: TransportService) {}
 
   @Get('routes')
-  getRoutes(@Request() req: any) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.transportService.getRoutes(schoolId);
+  @RequirePermissions('transport.view')
+  @ApiOperation({ summary: 'List transport routes' })
+  getRoutes(@CurrentTenant() tenant: TenantContext) {
+    return this.transportService.getRoutes(tenant.schoolId);
   }
 
   @Post('routes')
+  @RequirePermissions('transport.manage')
+  @ApiOperation({ summary: 'Create transport route' })
   createRoute(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Body()
     dto: {
       name: string;
@@ -38,13 +48,14 @@ export class TransportController {
       feePerTerm?: number;
     },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.transportService.createRoute(schoolId, dto);
+    return this.transportService.createRoute(tenant.schoolId, dto);
   }
 
   @Put('routes/:id')
+  @RequirePermissions('transport.manage')
+  @ApiOperation({ summary: 'Update transport route' })
   updateRoute(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
     @Body()
     dto: {
@@ -58,13 +69,13 @@ export class TransportController {
       status?: string;
     },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.transportService.updateRoute(schoolId, id, dto);
+    return this.transportService.updateRoute(tenant.schoolId, id, dto);
   }
 
   @Delete('routes/:id')
-  deleteRoute(@Request() req: any, @Param('id') id: string) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.transportService.deleteRoute(schoolId, id);
+  @RequirePermissions('transport.manage')
+  @ApiOperation({ summary: 'Delete transport route' })
+  deleteRoute(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
+    return this.transportService.deleteRoute(tenant.schoolId, id);
   }
 }

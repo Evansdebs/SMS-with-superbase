@@ -96,6 +96,7 @@ const navGroups: NavGroup[] = [
       { name: 'Documents Vault', href: '/school/documents', icon: FolderOpen, requiredPermission: 'documents.view' },
       { name: 'Notice Board', href: '/school/announcements', icon: Bell, requiredPermission: 'announcements.view' },
       { name: 'Term Calendar', href: '/school/calendar', icon: Calendar, requiredPermission: 'calendar.view' },
+      { name: 'Staff & Users', href: '/school/users', icon: UserCog, requiredPermission: 'roles.manage' },
       { name: 'Roles & Permissions', href: '/school/roles', icon: ShieldCheck, requiredPermission: 'roles.manage' },
       { name: 'School Settings', href: '/school/settings', icon: Settings, requiredPermission: 'settings.manage' },
     ],

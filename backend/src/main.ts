@@ -73,10 +73,11 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
 
   // ── Global interceptors ───────────────────────────────────────────────────
-  // Order matters: Transform wraps Audit so the audit sees the final shape
+  // TransformInterceptor runs as the outer wrapper so audit logs capture
+  // the final { success, data } response shape rather than the raw return value.
   app.useGlobalInterceptors(
-    new AuditLogInterceptor(),
     new TransformInterceptor(),
+    new AuditLogInterceptor(),
   );
 
   // ── Swagger / OpenAPI ────────────────────────────────────────────────────

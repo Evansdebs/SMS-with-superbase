@@ -12,15 +12,18 @@ import { ResultsService } from './results.service';
 import { RecordBatchScoresDto } from './dto/record-scores.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SchoolMembershipGuard } from '../common/guards/school-membership.guard';
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { CurrentTenant } from '../common/decorators/tenant.decorator';
 import { TenantContext } from '../common/interfaces/tenant-context.interface';
 
 @Controller('results')
-@UseGuards(JwtAuthGuard, SchoolMembershipGuard)
+@UseGuards(JwtAuthGuard, SchoolMembershipGuard, PermissionsGuard)
 export class ResultsController {
   constructor(private resultsService: ResultsService) {}
 
   @Post('batch')
+  @RequirePermissions('results.record')
   recordBatchScores(
     @CurrentTenant() tenant: TenantContext,
     @Body() dto: RecordBatchScoresDto,
@@ -29,6 +32,7 @@ export class ResultsController {
   }
 
   @Get('class/:classId')
+  @RequirePermissions('results.view')
   getClassResults(
     @CurrentTenant() tenant: TenantContext,
     @Param('classId') classId: string,
@@ -38,6 +42,7 @@ export class ResultsController {
   }
 
   @Get('report-card/:studentId')
+  @RequirePermissions('results.view')
   getStudentReportCard(
     @CurrentTenant() tenant: TenantContext,
     @Param('studentId') studentId: string,
@@ -46,6 +51,7 @@ export class ResultsController {
   }
 
   @Post('publish/:classId')
+  @RequirePermissions('results.publish')
   publishClassResults(
     @CurrentTenant() tenant: TenantContext,
     @Param('classId') classId: string,

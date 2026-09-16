@@ -20,13 +20,16 @@ export default function ParentsPage() {
   const [parents, setParents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const loadParents = async () => {
     setLoading(true);
+    setApiError(null);
     try {
       const res = await apiRequest(`/parents?search=${encodeURIComponent(search)}`);
-      setParents(res?.data || []);
-    } catch {
+      setParents(res?.data || res || []);
+    } catch (err: any) {
+      setApiError(err?.message || 'Could not load parents from the server. Showing demo data.');
       setParents([
         {
           id: '1',
@@ -91,6 +94,23 @@ export default function ParentsPage() {
             </p>
           </div>
         </div>
+
+        {/* API Error Banner */}
+        {apiError && (
+          <div className="mt-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-4 py-3">
+            <Sparkles className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">Demo Mode — Live API Unavailable</p>
+              <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">{apiError}</p>
+            </div>
+            <button
+              onClick={() => setApiError(null)}
+              className="text-amber-400 hover:text-amber-600 transition-colors text-xs shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Search */}
         <div className="flex items-center justify-between gap-3 mt-6 mb-4">

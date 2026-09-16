@@ -9,28 +9,38 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { HrService } from './hr.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SchoolMembershipGuard } from '../common/guards/school-membership.guard';
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CurrentTenant } from '../common/decorators/tenant.decorator';
+import { TenantContext } from '../common/interfaces/tenant-context.interface';
 
+@ApiTags('HR')
+@ApiBearerAuth('JWT')
 @Controller('hr')
-@UseGuards(JwtAuthGuard, SchoolMembershipGuard)
+@UseGuards(JwtAuthGuard, SchoolMembershipGuard, PermissionsGuard)
 export class HrController {
   constructor(private readonly hrService: HrService) {}
 
   @Get('leaves')
+  @RequirePermissions('hr.view')
+  @ApiOperation({ summary: 'List staff leave applications' })
   getLeaves(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Query('staffId') staffId?: string,
     @Query('status') status?: string,
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.hrService.getLeaves(schoolId, staffId, status);
+    return this.hrService.getLeaves(tenant.schoolId, staffId, status);
   }
 
   @Post('leaves')
+  @RequirePermissions('hr.apply')
+  @ApiOperation({ summary: 'Apply for staff leave' })
   createLeave(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Body()
     dto: {
       staffId: string;
@@ -41,18 +51,19 @@ export class HrController {
       reason: string;
     },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.hrService.createLeave(schoolId, dto);
+    return this.hrService.createLeave(tenant.schoolId, dto);
   }
 
   @Put('leaves/:id/status')
+  @RequirePermissions('hr.manage')
+  @ApiOperation({ summary: 'Approve or reject staff leave application' })
   updateLeaveStatus(
+    @CurrentTenant() tenant: TenantContext,
     @Request() req: any,
     @Param('id') id: string,
     @Body() dto: { status: string },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    const approvedBy = req.user?.userId;
-    return this.hrService.updateLeaveStatus(schoolId, id, dto.status, approvedBy);
+    const approvedBy = req.user?.id || req.user?.userId;
+    return this.hrService.updateLeaveStatus(tenant.schoolId, id, dto.status, approvedBy);
   }
 }

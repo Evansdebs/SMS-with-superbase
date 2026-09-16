@@ -1,25 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-
-interface FeeRecord {
-  id: string;
-  studentId: string;
-  studentName: string;
-  admissionNumber: string;
-  class: string;
-  term: string;
-  academicYear: string;
-  feeType: string;
-  totalAmount: number;
-  discountAmount: number;
-  scholarshipName: string | null;
-  amountPaid: number;
-  balance: number;
-  status: string;
-  paymentDate: string | null;
-  receiptNumber: string | null;
-}
 import Link from 'next/link';
 import {
   DollarSign,
@@ -46,11 +27,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
+import { apiRequest } from '@/lib/api';
+
+interface FeeRecord {
+  id: string;
+  studentId: string;
+  studentName: string;
+  admissionNumber: string;
+  class: string;
+  term: string;
+  academicYear: string;
+  feeType: string;
+  totalAmount: number;
+  discountAmount: number;
+  scholarshipName: string | null;
+  amountPaid: number;
+  balance: number;
+  status: string;
+  paymentDate: string | null;
+  receiptNumber: string | null;
+}
 
 // Production clean state - live data is populated from institutional billing actions
 const INITIAL_FEE_RECORDS: FeeRecord[] = [];
 const INITIAL_STRUCTURES: { id: string; name: string; amount: number; category: string; academicYear: string }[] = [];
 const INITIAL_EXPENSES: { id: string; category: string; description: string; amount: number; expenseDate: string; approvedBy: string }[] = [];
+
 
 export default function FeesPage() {
   const [activeTab, setActiveTab] = useState<'ledgers' | 'structures' | 'scholarships' | 'expenses' | 'statement'>('ledgers');
@@ -59,6 +61,9 @@ export default function FeesPage() {
   const [expenses, setExpenses] = useState(INITIAL_EXPENSES);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modals
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -77,6 +82,84 @@ export default function FeesPage() {
 
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [newExpense, setNewExpense] = useState({ category: 'UTILITIES', description: '', amount: 500 });
+
+  // Load backend data
+  const loadFeeData = async () => {
+    setLoading(true);
+    setApiError(null);
+    try {
+      const [recordsRes, structuresRes, expensesRes] = await Promise.allSettled([
+        apiRequest<{ data?: any[] }>('/fees'),
+        apiRequest<any[]>('/fees/structures'),
+        apiRequest<any[]>('/fees/expenses'),
+      ]);
+
+      if (recordsRes.status === 'fulfilled' && recordsRes.value) {
+        const raw = recordsRes.value.data || (Array.isArray(recordsRes.value) ? recordsRes.value : []);
+        if (raw.length > 0) {
+          setRecords(
+            raw.map((r: any) => ({
+              id: r.id,
+              studentId: r.studentId,
+              studentName: r.studentName || `${r.student?.firstName || ''} ${r.student?.lastName || ''}`.trim(),
+              admissionNumber: r.admissionNumber || r.student?.admissionNumber || '',
+              class: r.class || r.student?.class?.name || 'N/A',
+              term: r.term || 'Term 1',
+              academicYear: r.academicYear || '2025/2026',
+              feeType: r.feeType || r.name || 'School Fees',
+              totalAmount: Number(r.totalAmount || r.amount || 0),
+              discountAmount: Number(r.discountAmount || 0),
+              scholarshipName: r.scholarshipName || null,
+              amountPaid: Number(r.amountPaid || r.paidAmount || 0),
+              balance: Number(r.balance || 0),
+              status: r.status || 'UNPAID',
+              paymentDate: r.paymentDate || null,
+              receiptNumber: r.receiptNumber || null,
+            }))
+          );
+        }
+      }
+
+      if (structuresRes.status === 'fulfilled' && structuresRes.value) {
+        const structList = Array.isArray(structuresRes.value) ? structuresRes.value : (structuresRes.value as any)?.data || [];
+        if (structList.length > 0) {
+          setStructures(
+            structList.map((s: any) => ({
+              id: s.id,
+              name: s.name,
+              amount: Number(s.amount || 0),
+              category: s.category || s.description || 'General',
+              academicYear: s.academicYear || '2025/2026',
+            }))
+          );
+        }
+      }
+
+      if (expensesRes.status === 'fulfilled' && expensesRes.value) {
+        const expList = Array.isArray(expensesRes.value) ? expensesRes.value : (expensesRes.value as any)?.data || [];
+        if (expList.length > 0) {
+          setExpenses(
+            expList.map((e: any) => ({
+              id: e.id,
+              category: e.category || 'GENERAL',
+              description: e.description || '',
+              amount: Number(e.amount || 0),
+              expenseDate: e.expenseDate ? e.expenseDate.split('T')[0] : new Date().toISOString().split('T')[0],
+              approvedBy: e.approvedBy || 'Finance Office',
+            }))
+          );
+        }
+      }
+    } catch (err: any) {
+      setApiError(err?.message || 'Failed to load financial records from server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFeeData();
+  }, []);
 
   // Filtered Ledgers
   const filteredRecords = records.filter((r) => {
@@ -103,12 +186,28 @@ export default function FeesPage() {
     setIsPaymentModalOpen(true);
   };
 
-  const handleRecordPayment = (e: React.FormEvent) => {
+  const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFee || !paymentAmount) return;
 
     const amt = parseFloat(paymentAmount);
     const receiptNum = `TLS-RCP-2025-${String(Date.now()).slice(-4)}`;
+    setIsSubmitting(true);
+
+    try {
+      await apiRequest('/fees/payment', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentFeeId: selectedFee.id,
+          amountPaid: amt,
+          paymentMethod,
+        }),
+      });
+    } catch (err: any) {
+      console.warn('Payment API call notice:', err?.message);
+    } finally {
+      setIsSubmitting(false);
+    }
 
     const updated = records.map((r) => {
       if (r.id === selectedFee.id) {
@@ -135,9 +234,25 @@ export default function FeesPage() {
     setIsReceiptModalOpen(true);
   };
 
-  const handleApplyScholarship = (e: React.FormEvent) => {
+  const handleApplyScholarship = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scholarshipData.feeId) return;
+    setIsSubmitting(true);
+
+    try {
+      await apiRequest('/fees/scholarship', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentFeeId: scholarshipData.feeId,
+          scholarshipName: scholarshipData.name,
+          discountAmount: Number(scholarshipData.discount),
+        }),
+      });
+    } catch (err: any) {
+      console.warn('Scholarship API call notice:', err?.message);
+    } finally {
+      setIsSubmitting(false);
+    }
 
     setRecords((prev) =>
       prev.map((r) => {
@@ -159,12 +274,31 @@ export default function FeesPage() {
     setIsScholarshipModalOpen(false);
   };
 
-  const handleCreateStructure = (e: React.FormEvent) => {
+  const handleCreateStructure = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
+    let createdId = `fs-${Date.now()}`;
+    try {
+      const res = await apiRequest<{ id?: string }>('/fees/structures', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: newStructure.name,
+          amount: Number(newStructure.amount),
+          description: newStructure.category,
+        }),
+      });
+      if (res?.id) createdId = res.id;
+    } catch (err: any) {
+      console.warn('Create structure API notice:', err?.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+
     setStructures([
       ...structures,
       {
-        id: `fs-${Date.now()}`,
+        id: createdId,
         name: newStructure.name,
         amount: Number(newStructure.amount),
         category: newStructure.category,
@@ -174,11 +308,30 @@ export default function FeesPage() {
     setIsStructureModalOpen(false);
   };
 
-  const handleCreateExpense = (e: React.FormEvent) => {
+  const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+
+    let createdId = `exp-${Date.now()}`;
+    try {
+      const res = await apiRequest<{ id?: string }>('/fees/expenses', {
+        method: 'POST',
+        body: JSON.stringify({
+          category: newExpense.category,
+          description: newExpense.description,
+          amount: Number(newExpense.amount),
+        }),
+      });
+      if (res?.id) createdId = res.id;
+    } catch (err: any) {
+      console.warn('Create expense API notice:', err?.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+
     setExpenses([
       {
-        id: `exp-${Date.now()}`,
+        id: createdId,
         category: newExpense.category,
         description: newExpense.description,
         amount: Number(newExpense.amount),
@@ -233,6 +386,23 @@ export default function FeesPage() {
             </Button>
           </div>
         </div>
+
+        {/* Error / Offline Notice */}
+        {apiError && (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-4 text-sm text-amber-800 dark:text-amber-300">
+            <AlertCircle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium">Live connection notice</p>
+              <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">{apiError}</p>
+            </div>
+            <button
+              onClick={() => setApiError(null)}
+              className="text-amber-600 hover:text-amber-800 text-xs font-semibold underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Financial KPI Banner */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">

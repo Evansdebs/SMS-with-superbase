@@ -3,40 +3,87 @@ import {
   Get,
   Post,
   Body,
+  Param,
   Query,
   UseGuards,
   Request,
+  Delete,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { FeesService } from './fees.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SchoolMembershipGuard } from '../common/guards/school-membership.guard';
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CurrentTenant } from '../common/decorators/tenant.decorator';
+import { TenantContext } from '../common/interfaces/tenant-context.interface';
 
+@ApiTags('Fees')
+@ApiBearerAuth('JWT')
 @Controller('fees')
-@UseGuards(JwtAuthGuard, SchoolMembershipGuard)
+@UseGuards(JwtAuthGuard, SchoolMembershipGuard, PermissionsGuard)
 export class FeesController {
   constructor(private readonly feesService: FeesService) {}
 
   /** GET /fees — List all student fee records for the tenant school */
   @Get()
+  @RequirePermissions('fees.view')
+  @ApiOperation({ summary: 'List all student fee records' })
   getFeeRecords(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Query('term') term?: string,
     @Query('status') status?: string,
   ) {
-    const schoolId = req.tenantContext?.schoolId;
-    return this.feesService.getFeeRecords(schoolId, term, status);
+    return this.feesService.getFeeRecords(tenant.schoolId, term, status);
   }
 
   /** GET /fees/summary — Aggregate fee collection statistics */
   @Get('summary')
-  getFeeSummary(@Request() req: any, @Query('term') term?: string) {
-    const schoolId = req.tenantContext?.schoolId;
-    return this.feesService.getFeeSummary(schoolId, term);
+  @RequirePermissions('fees.view')
+  @ApiOperation({ summary: 'Get fee collection summary statistics' })
+  getFeeSummary(@CurrentTenant() tenant: TenantContext, @Query('term') term?: string) {
+    return this.feesService.getFeeSummary(tenant.schoolId, term);
+  }
+
+  /** GET /fees/financial-statement — Comprehensive P&L Statement */
+  @Get('financial-statement')
+  @RequirePermissions('fees.view')
+  @ApiOperation({ summary: 'Get full financial statement (P&L)' })
+  getFinancialStatement(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('academicYear') academicYear?: string,
+    @Query('term') term?: string,
+  ) {
+    return this.feesService.getFinancialStatement(tenant.schoolId, academicYear, term);
+  }
+
+  /** GET /fees/structures — List fee structures */
+  @Get('structures')
+  @RequirePermissions('fees.view')
+  @ApiOperation({ summary: 'List fee structures' })
+  getFeeStructures(@CurrentTenant() tenant: TenantContext) {
+    return this.feesService.getFeeStructures(tenant.schoolId);
+  }
+
+  /** GET /fees/expenses — List expenses */
+  @Get('expenses')
+  @RequirePermissions('fees.view')
+  @ApiOperation({ summary: 'List school expenses' })
+  getExpenses(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('category') category?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.feesService.getExpenses(tenant.schoolId, category, startDate, endDate);
   }
 
   /** POST /fees/payment — Record a cash/mobile money/bank payment */
   @Post('payment')
+  @RequirePermissions('fees.collect')
+  @ApiOperation({ summary: 'Record a fee payment and issue receipt' })
   recordPayment(
+    @CurrentTenant() tenant: TenantContext,
     @Request() req: any,
     @Body()
     dto: {
@@ -46,59 +93,15 @@ export class FeesController {
       notes?: string;
     },
   ) {
-    const schoolId = req.tenantContext?.schoolId;
-    const userId = req.user?.userId;
-    return this.feesService.recordPayment(schoolId, dto.studentFeeId, dto, userId);
-  }
-
-  /** GET /fees/expenses — List expenses */
-  @Get('expenses')
-  getExpenses(
-    @Request() req: any,
-    @Query('category') category?: string,
-    @Query('startDate') startDate?: string,
-    @Query('endDate') endDate?: string,
-  ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.feesService.getExpenses(schoolId, category, startDate, endDate);
-  }
-
-  /** POST /fees/expenses — Create an expense */
-  @Post('expenses')
-  createExpense(
-    @Request() req: any,
-    @Body()
-    dto: {
-      category: string;
-      description: string;
-      amount: number;
-      expenseDate?: string;
-      approvedBy?: string;
-      receipt?: string;
-    },
-  ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.feesService.createExpense(schoolId, dto);
-  }
-
-  /** DELETE /fees/expenses/:id — Delete an expense */
-  @Get('expenses/delete/:id')
-  deleteExpense(@Request() req: any, @Query('id') id: string) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.feesService.deleteExpense(schoolId, id);
-  }
-
-  /** GET /fees/structures — List fee structures */
-  @Get('structures')
-  getFeeStructures(@Request() req: any) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.feesService.getFeeStructures(schoolId);
+    return this.feesService.recordPayment(tenant.schoolId, dto.studentFeeId, dto, req.user?.id);
   }
 
   /** POST /fees/structures — Create fee structure */
   @Post('structures')
+  @RequirePermissions('fees.manage')
+  @ApiOperation({ summary: 'Create a new fee structure' })
   createFeeStructure(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Body()
     dto: {
       name: string;
@@ -109,14 +112,15 @@ export class FeesController {
       term?: string;
     },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.feesService.createFeeStructure(schoolId, dto);
+    return this.feesService.createFeeStructure(tenant.schoolId, dto);
   }
 
   /** POST /fees/scholarship — Apply scholarship or discount */
   @Post('scholarship')
+  @RequirePermissions('fees.manage')
+  @ApiOperation({ summary: 'Apply scholarship or discount to a student fee' })
   applyScholarship(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Body()
     dto: {
       studentFeeId: string;
@@ -124,20 +128,36 @@ export class FeesController {
       discountAmount: number;
     },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.feesService.applyScholarship(schoolId, dto.studentFeeId, dto);
+    return this.feesService.applyScholarship(tenant.schoolId, dto.studentFeeId, dto);
   }
 
-  /** GET /fees/financial-statement — Comprehensive P&L Statement */
-  @Get('financial-statement')
-  getFinancialStatement(
-    @Request() req: any,
-    @Query('academicYear') academicYear?: string,
-    @Query('term') term?: string,
+  /** POST /fees/expenses — Create an expense */
+  @Post('expenses')
+  @RequirePermissions('fees.manage')
+  @ApiOperation({ summary: 'Record a school expense' })
+  createExpense(
+    @CurrentTenant() tenant: TenantContext,
+    @Body()
+    dto: {
+      category: string;
+      description: string;
+      amount: number;
+      expenseDate?: string;
+      approvedBy?: string;
+      receipt?: string;
+    },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.feesService.getFinancialStatement(schoolId, academicYear, term);
+    return this.feesService.createExpense(tenant.schoolId, dto);
+  }
+
+  /** DELETE /fees/expenses/:id — Delete an expense */
+  @Delete('expenses/:id')
+  @RequirePermissions('fees.manage')
+  @ApiOperation({ summary: 'Delete an expense record' })
+  deleteExpense(
+    @CurrentTenant() tenant: TenantContext,
+    @Param('id') id: string,
+  ) {
+    return this.feesService.deleteExpense(tenant.schoolId, id);
   }
 }
-
-

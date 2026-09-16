@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -8,6 +8,7 @@ import { RolesService } from '../roles/roles.service';
 export class AuthService {
   private supabase: SupabaseClient;
   private supabaseServiceRole: SupabaseClient;
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private prisma: PrismaService,
@@ -99,7 +100,8 @@ export class AuthService {
       }
 
       return user;
-    } catch (error) {
+    } catch (error: any) {
+      this.logger.error(`Token validation failed: ${error?.message || error}`, error?.stack);
       throw new UnauthorizedException('Token validation failed');
     }
   }

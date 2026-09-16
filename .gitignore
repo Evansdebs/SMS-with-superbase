@@ -35,6 +35,7 @@ dist/
 build/
 .next/
 out/
+*.tsbuildinfo
 
 # Database
 *.db

@@ -10,19 +10,23 @@ import {
 import { HealthService } from './health.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SchoolMembershipGuard } from '../common/guards/school-membership.guard';
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
 
 @Controller('health')
-@UseGuards(JwtAuthGuard, SchoolMembershipGuard)
+@UseGuards(JwtAuthGuard, SchoolMembershipGuard, PermissionsGuard)
 export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
   @Get()
+  @RequirePermissions('health.view')
   getRecords(@Request() req: any, @Query('studentId') studentId?: string) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
+    const schoolId = req.user?.schoolId;
     return this.healthService.getRecords(schoolId, studentId);
   }
 
   @Post()
+  @RequirePermissions('health.manage')
   createRecord(
     @Request() req: any,
     @Body()
@@ -39,7 +43,8 @@ export class HealthController {
       remarks?: string;
     },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
+    const schoolId = req.user?.schoolId;
     return this.healthService.createRecord(schoolId, dto);
   }
+
 }

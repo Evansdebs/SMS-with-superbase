@@ -7,30 +7,34 @@ import {
   Param,
   Query,
   UseGuards,
-  Request,
 } from '@nestjs/common';
 import { DisciplineService } from './discipline.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SchoolMembershipGuard } from '../common/guards/school-membership.guard';
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
+import { CurrentTenant } from '../common/decorators/tenant.decorator';
+import { TenantContext } from '../common/interfaces/tenant-context.interface';
 
 @Controller('discipline')
-@UseGuards(JwtAuthGuard, SchoolMembershipGuard)
+@UseGuards(JwtAuthGuard, SchoolMembershipGuard, PermissionsGuard)
 export class DisciplineController {
   constructor(private readonly disciplineService: DisciplineService) {}
 
   @Get()
+  @RequirePermissions('discipline.view')
   getRecords(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Query('studentId') studentId?: string,
     @Query('status') status?: string,
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.disciplineService.getRecords(schoolId, studentId, status);
+    return this.disciplineService.getRecords(tenant.schoolId, studentId, status);
   }
 
   @Post()
+  @RequirePermissions('discipline.manage')
   createRecord(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Body()
     dto: {
       studentId: string;
@@ -43,17 +47,16 @@ export class DisciplineController {
       parentNotified?: boolean;
     },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.disciplineService.createRecord(schoolId, dto);
+    return this.disciplineService.createRecord(tenant.schoolId, dto);
   }
 
   @Put(':id/status')
+  @RequirePermissions('discipline.manage')
   updateStatus(
-    @Request() req: any,
+    @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
     @Body() dto: { status: string; actionTaken?: string },
   ) {
-    const schoolId = req.tenantContext?.schoolId || req.user?.schoolId;
-    return this.disciplineService.updateStatus(schoolId, id, dto.status, dto.actionTaken);
+    return this.disciplineService.updateStatus(tenant.schoolId, id, dto.status, dto.actionTaken);
   }
 }
