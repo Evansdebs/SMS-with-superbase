@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
+  Param,
   Body,
   UseGuards,
 } from '@nestjs/common';
@@ -76,5 +78,78 @@ export class AcademicsController {
     @Body() data: { name: string; startDate: string; endDate: string; isActive?: boolean },
   ) {
     return this.academicsService.createAcademicYear(tenant.schoolId, data);
+  }
+
+  // ===================== ROOMS =====================
+  @Get('rooms')
+  @RequirePermissions('academics.view')
+  getRooms(@CurrentTenant() tenant: TenantContext) {
+    return this.academicsService.getRooms(tenant.schoolId);
+  }
+
+  @Post('rooms')
+  @RequirePermissions('academics.manage')
+  createRoom(
+    @CurrentTenant() tenant: TenantContext,
+    @Body() data: { name: string; capacity?: number; roomType?: string; building?: string },
+  ) {
+    return this.academicsService.createRoom(tenant.schoolId, data);
+  }
+
+  @Delete('rooms/:id')
+  @RequirePermissions('academics.manage')
+  deleteRoom(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
+    return this.academicsService.deleteRoom(tenant.schoolId, id);
+  }
+
+  // ===================== HOUSES =====================
+  @Get('houses')
+  @RequirePermissions('academics.view')
+  getHouses(@CurrentTenant() tenant: TenantContext) {
+    return this.academicsService.getHouses(tenant.schoolId);
+  }
+
+  @Post('houses')
+  @RequirePermissions('academics.manage')
+  createHouse(
+    @CurrentTenant() tenant: TenantContext,
+    @Body() data: { name: string; color?: string; masterName?: string; motto?: string },
+  ) {
+    return this.academicsService.createHouse(tenant.schoolId, data);
+  }
+
+  @Delete('houses/:id')
+  @RequirePermissions('academics.manage')
+  deleteHouse(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
+    return this.academicsService.deleteHouse(tenant.schoolId, id);
+  }
+
+  // ===================== GRADING SYSTEMS =====================
+  @Get('grading-systems')
+  @RequirePermissions('academics.view')
+  getGradingSystems(@CurrentTenant() tenant: TenantContext) {
+    return this.academicsService.getGradingSystems(tenant.schoolId);
+  }
+
+  @Post('grading-systems')
+  @RequirePermissions('academics.manage')
+  createGradingSystem(
+    @CurrentTenant() tenant: TenantContext,
+    @Body() data: {
+      name: string;
+      code: string;
+      description?: string;
+      isDefault?: boolean;
+      scales: Array<{
+        grade: string;
+        minScore: number;
+        maxScore: number;
+        gradePoint?: number;
+        descriptor: string;
+        remarks: string;
+      }>;
+    },
+  ) {
+    return this.academicsService.createGradingSystem(tenant.schoolId, data);
   }
 }

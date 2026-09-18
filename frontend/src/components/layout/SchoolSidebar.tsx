@@ -31,7 +31,13 @@ import {
   X,
   ShieldCheck,
   Building2,
-  ChevronRight,
+  ClipboardList,
+  Banknote,
+  BedDouble,
+  DoorOpen,
+  MessageSquare,
+  Receipt,
+  Users,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AuthSession, clearStoredSession } from '@/lib/api';
@@ -64,6 +70,12 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    label: 'Admissions',
+    items: [
+      { name: 'Applications', href: '/school/admissions', icon: ClipboardList, requiredPermission: 'admissions.view' },
+    ],
+  },
+  {
     label: 'Academics',
     items: [
       { name: 'Students', href: '/school/students', icon: GraduationCap, requiredPermission: 'students.view' },
@@ -77,26 +89,46 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Operations & Services',
+    label: 'Boarding & Welfare',
     items: [
-      { name: 'Parent Directory', href: '/school/parents', icon: HeartHandshake, requiredPermission: 'parents.view' },
-      { name: 'Discipline / Conduct', href: '/school/discipline', icon: AlertTriangle, requiredPermission: 'discipline.view' },
+      { name: 'Boarding / Dormitories', href: '/school/boarding', icon: BedDouble, requiredPermission: 'boarding.view' },
+      { name: 'Exeat Requests', href: '/school/exeats', icon: DoorOpen, requiredPermission: 'exeats.view' },
       { name: 'Health / Sick Bay', href: '/school/health', icon: Stethoscope, requiredPermission: 'health.view' },
-      { name: 'Library System', href: '/school/library', icon: Library, requiredPermission: 'library.view' },
-      { name: 'Inventory & Assets', href: '/school/inventory', icon: Package, requiredPermission: 'inventory.view' },
-      { name: 'Transport Fleet', href: '/school/transport', icon: Bus, requiredPermission: 'transport.view' },
-      { name: 'HR & Staff Leave', href: '/school/hr', icon: UserCog, requiredPermission: 'hr.apply' },
+      { name: 'Discipline / Conduct', href: '/school/discipline', icon: AlertTriangle, requiredPermission: 'discipline.view' },
     ],
   },
   {
-    label: 'Administration & Finance',
+    label: 'Operations & Services',
+    items: [
+      { name: 'Parent Directory', href: '/school/parents', icon: HeartHandshake, requiredPermission: 'parents.view' },
+      { name: 'Library System', href: '/school/library', icon: Library, requiredPermission: 'library.view' },
+      { name: 'Inventory & Assets', href: '/school/inventory', icon: Package, requiredPermission: 'inventory.view' },
+      { name: 'Transport Fleet', href: '/school/transport', icon: Bus, requiredPermission: 'transport.view' },
+      { name: 'Communication', href: '/school/communication', icon: MessageSquare, requiredPermission: 'communication.view' },
+    ],
+  },
+  {
+    label: 'Finance',
     items: [
       { name: 'Fee Collections', href: '/school/fees', icon: DollarSign, requiredPermission: 'fees.view' },
+      { name: 'Billing & Debtors', href: '/school/billing', icon: Receipt, requiredPermission: 'fees.view' },
       { name: 'School Billing', href: '/school/billing', icon: CreditCard, requiredPermission: 'billing.manage' },
+    ],
+  },
+  {
+    label: 'HR & Payroll',
+    items: [
+      { name: 'HR & Staff Leave', href: '/school/hr', icon: UserCog, requiredPermission: 'hr.apply' },
+      { name: 'Payroll (PAYE/SSNIT)', href: '/school/payroll', icon: Banknote, requiredPermission: 'hr.payroll.view' },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
       { name: 'Documents Vault', href: '/school/documents', icon: FolderOpen, requiredPermission: 'documents.view' },
       { name: 'Notice Board', href: '/school/announcements', icon: Bell, requiredPermission: 'announcements.view' },
       { name: 'Term Calendar', href: '/school/calendar', icon: Calendar, requiredPermission: 'calendar.view' },
-      { name: 'Staff & Users', href: '/school/users', icon: UserCog, requiredPermission: 'roles.manage' },
+      { name: 'Staff & Users', href: '/school/users', icon: Users, requiredPermission: 'roles.manage' },
       { name: 'Roles & Permissions', href: '/school/roles', icon: ShieldCheck, requiredPermission: 'roles.manage' },
       { name: 'School Settings', href: '/school/settings', icon: Settings, requiredPermission: 'settings.manage' },
     ],

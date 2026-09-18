@@ -154,10 +154,76 @@ export class FeesController {
   @Delete('expenses/:id')
   @RequirePermissions('fees.manage')
   @ApiOperation({ summary: 'Delete an expense record' })
-  deleteExpense(
-    @CurrentTenant() tenant: TenantContext,
-    @Param('id') id: string,
-  ) {
+  deleteExpense(@CurrentTenant() tenant: TenantContext, @Param('id') id: string) {
     return this.feesService.deleteExpense(tenant.schoolId, id);
   }
+
+  // ─────────────── FEE CATEGORIES ───────────────
+  @Get('categories')
+  @RequirePermissions('fees.view')
+  @ApiOperation({ summary: 'List fee categories' })
+  getFeeCategories(@CurrentTenant() tenant: TenantContext) {
+    return this.feesService.getFeeCategories(tenant.schoolId);
+  }
+
+  @Post('categories')
+  @RequirePermissions('fees.manage')
+  @ApiOperation({ summary: 'Create a fee category' })
+  createFeeCategory(
+    @CurrentTenant() tenant: TenantContext,
+    @Body() dto: { name: string; description?: string; frequency?: string },
+  ) {
+    return this.feesService.createFeeCategory(tenant.schoolId, dto);
+  }
+
+  // ─────────────── STUDENT BILLS ───────────────
+  @Get('bills')
+  @RequirePermissions('fees.view')
+  @ApiOperation({ summary: 'List student bills' })
+  getBills(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('classId') classId?: string,
+    @Query('term') term?: string,
+    @Query('academicYear') academicYear?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.feesService.getBills(tenant.schoolId, { classId, term, academicYear, status });
+  }
+
+  @Post('bills/generate')
+  @RequirePermissions('fees.manage')
+  @ApiOperation({ summary: 'Bulk generate student bills for a fee category & term' })
+  generateBills(
+    @CurrentTenant() tenant: TenantContext,
+    @Body() dto: { feeCategoryId: string; amount: number; dueDate: string; academicYear: string; term: string; classId?: string },
+  ) {
+    return this.feesService.generateBills(tenant.schoolId, dto);
+  }
+
+  // ─────────────── DEBTORS ───────────────
+  @Get('debtors')
+  @RequirePermissions('fees.view')
+  @ApiOperation({ summary: 'Get list of students with outstanding fee balances' })
+  getDebtors(
+    @CurrentTenant() tenant: TenantContext,
+    @Query('term') term?: string,
+    @Query('academicYear') academicYear?: string,
+  ) {
+    return this.feesService.getDebtors(tenant.schoolId, term, academicYear);
+  }
+
+  // ─────────────── PAYMENT REVERSAL ───────────────
+  @Post('payment/:id/reverse')
+  @RequirePermissions('fees.manage')
+  @ApiOperation({ summary: 'Reverse a payment (audit-safe)' })
+  reversePayment(
+    @CurrentTenant() tenant: TenantContext,
+    @Request() req: any,
+    @Param('id') paymentId: string,
+    @Body() dto: { reason: string },
+  ) {
+    const reversedBy = req.user?.email || req.user?.id;
+    return this.feesService.reversePayment(tenant.schoolId, paymentId, dto.reason, reversedBy);
+  }
 }
+

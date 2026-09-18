@@ -35,6 +35,7 @@ export const metadata: Metadata = {
     'fee management',
   ],
   authors: [{ name: 'EduSuite Engineering' }],
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

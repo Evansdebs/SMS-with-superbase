@@ -278,4 +278,162 @@ export class ResultsService {
 
     return { success: true, message: 'Class results published and locked successfully' };
   }
+
+  // ===================== ASSESSMENTS =====================
+  async getAssessments(schoolId: string, classId?: string, subjectId?: string) {
+    const where: any = { schoolId };
+    if (classId) where.classId = classId;
+    if (subjectId) where.subjectId = subjectId;
+    return this.prisma.assessment.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createAssessment(schoolId: string, data: {
+    classId: string;
+    subjectId: string;
+    academicYear: string;
+    term: string;
+    name: string;
+    type: string;
+    weightPercentage?: number;
+    maxMarks?: number;
+    date?: string;
+  }) {
+    return this.prisma.assessment.create({
+      data: {
+        schoolId,
+        classId: data.classId,
+        subjectId: data.subjectId,
+        academicYear: data.academicYear,
+        term: data.term,
+        name: data.name,
+        type: data.type,
+        weightPercentage: data.weightPercentage ?? 30,
+        maxMarks: data.maxMarks ?? 100,
+        date: data.date ? new Date(data.date) : null,
+      },
+    });
+  }
+
+  // ===================== PERSISTENT REPORT CARDS =====================
+  async generateClassReportCards(schoolId: string, dto: { classId: string; academicYear: string; term: string }) {
+    const students = await this.prisma.student.findMany({
+      where: { schoolId, classId: dto.classId, status: 'ACTIVE' },
+      select: { id: true },
+    });
+
+    if (students.length === 0) {
+      throw new BadRequestException('No active students found in this class');
+    }
+
+    const createdCards = [];
+    for (const student of students) {
+      const cardData = await this.getStudentReportCard(schoolId, student.id);
+      const isJHS = cardData.student.level.toUpperCase().includes('JHS');
+      const aggregate = isJHS && cardData.performance.beceAggregate ? cardData.performance.beceAggregate.totalAggregate : null;
+      const remark = isJHS && cardData.performance.beceAggregate ? cardData.performance.beceAggregate.division : null;
+
+      const reportCard = await this.prisma.reportCard.upsert({
+        where: {
+          schoolId_studentId_academicYear_term: {
+            schoolId,
+            studentId: student.id,
+            academicYear: dto.academicYear,
+            term: dto.term,
+          },
+        },
+        update: {
+          classId: dto.classId,
+          totalScore: Number(cardData.performance.totalScore),
+          averageScore: parseFloat(cardData.performance.average),
+          aggregateScore: aggregate,
+          aggregateRemark: remark,
+          attendancePresent: cardData.attendance.daysPresent,
+          attendanceTotal: cardData.attendance.totalDays,
+          conduct: cardData.remarks.conduct,
+          attitude: cardData.remarks.attitude,
+          classTeacherRemarks: cardData.remarks.classTeacherRemarks,
+          headteacherRemarks: cardData.remarks.headteacherRemarks,
+        },
+        create: {
+          schoolId,
+          studentId: student.id,
+          classId: dto.classId,
+          academicYear: dto.academicYear,
+          term: dto.term,
+          totalScore: Number(cardData.performance.totalScore),
+          averageScore: parseFloat(cardData.performance.average),
+          aggregateScore: aggregate,
+          aggregateRemark: remark,
+          attendancePresent: cardData.attendance.daysPresent,
+          attendanceTotal: cardData.attendance.totalDays,
+          conduct: cardData.remarks.conduct,
+          attitude: cardData.remarks.attitude,
+          classTeacherRemarks: cardData.remarks.classTeacherRemarks,
+          headteacherRemarks: cardData.remarks.headteacherRemarks,
+          status: 'DRAFT',
+        },
+      });
+      createdCards.push(reportCard);
+    }
+
+    // Assign class rank based on totalScore
+    createdCards.sort((a, b) => b.totalScore - a.totalScore);
+    for (let i = 0; i < createdCards.length; i++) {
+      await this.prisma.reportCard.update({
+        where: { id: createdCards[i].id },
+        data: { rank: i + 1 },
+      });
+      createdCards[i].rank = i + 1;
+    }
+
+    return {
+      success: true,
+      generatedCount: createdCards.length,
+      reportCards: createdCards,
+    };
+  }
+
+  async getReportCards(schoolId: string, params: { classId?: string; academicYear?: string; term?: string; studentId?: string }) {
+    const where: any = { schoolId };
+    if (params.classId) where.classId = params.classId;
+    if (params.academicYear) where.academicYear = params.academicYear;
+    if (params.term) where.term = params.term;
+    if (params.studentId) where.studentId = params.studentId;
+
+    return this.prisma.reportCard.findMany({
+      where,
+      include: {
+        student: {
+          include: { class: true },
+        },
+      },
+      orderBy: [{ rank: 'asc' }, { student: { lastName: 'asc' } }],
+    });
+  }
+
+  async updateReportCard(schoolId: string, id: string, data: {
+    conduct?: string;
+    attitude?: string;
+    interest?: string;
+    classTeacherRemarks?: string;
+    headteacherRemarks?: string;
+    promotedTo?: string;
+    status?: string;
+  }) {
+    const card = await this.prisma.reportCard.findFirst({ where: { id, schoolId } });
+    if (!card) throw new NotFoundException('Report card not found');
+
+    const updateData: any = { ...data };
+    if (data.status === 'PUBLISHED') {
+      updateData.publishedAt = new Date();
+    }
+
+    return this.prisma.reportCard.update({
+      where: { id },
+      data: updateData,
+    });
+  }
 }

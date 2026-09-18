@@ -1,0 +1,42 @@
+{
+  "name": "Ghana School Management System (SMS)",
+  "short_name": "School SMS",
+  "description": "Enterprise Multi-Tenant School Management & Academic System for Ghana",
+  "start_url": "/school/dashboard",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/globe.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity", "management"],
+  "shortcuts": [
+    {
+      "name": "Attendance",
+      "url": "/school/attendance",
+      "description": "Mark student daily register"
+    },
+    {
+      "name": "Fee Collections",
+      "url": "/school/fees",
+      "description": "Collect and receipt student fees"
+    },
+    {
+      "name": "Report Cards",
+      "url": "/school/report-cards",
+      "description": "Generate WAEC / Terminal report cards"
+    }
+  ]
+}

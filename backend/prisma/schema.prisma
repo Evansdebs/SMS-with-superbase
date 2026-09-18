@@ -121,6 +121,30 @@ model School {
   inventoryAssets   InventoryAsset[]
   transportRoutes   TransportRoute[]
   staffLeaves       StaffLeave[]
+  admissions        AdmissionApplication[]
+  rooms             Room[]
+  houses            House[]
+  gradingSystems    GradingSystem[]
+  assessments       Assessment[]
+  reportCards       ReportCard[]
+  feeCategories     FeeCategory[]
+  studentBills      StudentBill[]
+  paymentReversals  PaymentReversal[]
+  accountHeads      AccountHead[]
+  incomeTransactions IncomeTransaction[]
+  bankAccounts      BankAccount[]
+  exeats            ExeatRequest[]
+  dormitories       Dormitory[]
+  visitorLogs       VisitorLog[]
+  lessonPlans       LessonPlan[]
+  salaryStructures  SalaryStructure[]
+  payrollPeriods    PayrollPeriod[]
+  payrollRuns       PayrollRun[]
+  payslips          Payslip[]
+  smsLogs           SmsLog[]
+  smsTemplates      SmsTemplate[]
+  messages          Message[]
+  idCardTemplates   IdCardTemplate[]
 
   @@index([schoolCode])
   @@index([status])
@@ -322,6 +346,10 @@ model Student {
   
   admissionDate     DateTime      @default(now())
   status            String        @default("ACTIVE") // ACTIVE, GRADUATED, WITHDRAWN, TRANSFERRED
+  nationality       String?       @default("Ghanaian")
+  house             String?
+  boardingStatus    String        @default("DAY") // DAY, BOARDING
+  emergencyContact  String?
   
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -335,6 +363,10 @@ model Student {
   disciplineRecords DisciplineRecord[]
   healthRecords     HealthRecord[]
   bookLoans         BookLoan[]
+  reportCards       ReportCard[]
+  studentBills      StudentBill[]
+  exeats            ExeatRequest[]
+  bedAllocations    BedAllocation[]
 
   @@unique([schoolId, admissionNumber])
   @@index([schoolId])
@@ -392,6 +424,7 @@ model Teacher {
 
   // Relations
   timetables        Timetable[]
+  lessonPlans       LessonPlan[]
 
   @@unique([schoolId, employeeId])
   @@index([schoolId])
@@ -450,6 +483,9 @@ model Staff {
   employmentDate   DateTime      @default(now())
   status            String        @default("ACTIVE")
   leaves            StaffLeave[]
+  salaryStructure   SalaryStructure?
+  payrollItems      PayrollItem[]
+  payslips          Payslip[]
   
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -587,8 +623,15 @@ model Payment {
   paidBy            String?
   receivedBy        String?
   
+  isReversed        Boolean       @default(false)
+  reversalReason    String?
+  reversedAt        DateTime?
+  
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+
+  allocations       PaymentAllocation[]
+  reversal          PaymentReversal?
 
   @@index([schoolId])
   @@index([studentId])
@@ -992,4 +1035,661 @@ model StaffLeave {
   @@index([staffId])
   @@map("staff_leaves")
 }
+
+// ============================================
+// PHASE 1 UPGRADES: ADMISSIONS
+// ============================================
+
+model AdmissionApplication {
+  id                    String              @id @default(uuid())
+  schoolId              String
+  school                School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  applicationNumber     String              // Unique per school e.g. APP-2026-001
+  firstName             String
+  lastName              String
+  dateOfBirth           DateTime?
+  gender                String?
+  nationality           String?             @default("Ghanaian")
+  previousSchool        String?
+  applyingForClass      String?
+  guardianName          String
+  guardianPhone         String
+  guardianEmail         String?
+  guardianAddress       String?
+  guardianRelationship  String?             // FATHER, MOTHER, GUARDIAN
+  medicalConditions     String?
+
+  applicationFee        Float               @default(0)
+  feePaid               Boolean             @default(false)
+  status                String              @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, SHORTLISTED, ACCEPTED, REJECTED, WAITLISTED, WITHDRAWN
+  
+  offerDate             DateTime?
+  acceptanceDeadline    DateTime?
+  convertedToStudentId  String?             // Linked Student ID once converted
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  documents             AdmissionDocument[]
+
+  @@unique([schoolId, applicationNumber])
+  @@index([schoolId])
+  @@index([status])
+  @@map("admission_applications")
+}
+
+model AdmissionDocument {
+  id            String               @id @default(uuid())
+  applicationId String
+  application   AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentType  String               // BIRTH_CERT, REPORT_CARD, PASSPORT_PHOTO, MEDICAL
+  fileName      String
+  fileUrl       String
+  uploadedAt    DateTime             @default(now())
+
+  @@index([applicationId])
+  @@map("admission_documents")
+}
+
+// ============================================
+// PHASE 2 UPGRADES: ROOMS & HOUSES
+// ============================================
+
+model Room {
+  id          String    @id @default(uuid())
+  schoolId    String
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String    // e.g. "Science Lab 1", "Room 102"
+  capacity    Int       @default(40)
+  roomType    String    @default("CLASSROOM") // CLASSROOM, LAB, LIBRARY, HALL, SICKBAY
+  building    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("rooms")
+}
+
+model House {
+  id          String    @id @default(uuid())
+  schoolId    String
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String    // e.g. "Aggrey", "Nkrumah", "Guggisberg"
+  color       String?
+  masterName  String?
+  motto       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("houses")
+}
+
+// ============================================
+// PHASE 4 UPGRADES: GHANA GRADING, ASSESSMENTS & REPORT CARDS
+// ============================================
+
+model GradingSystem {
+  id          String         @id @default(uuid())
+  schoolId    String
+  school      School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String         // e.g. "Ghana Primary (1-6)", "BECE Stanine (1-9)", "Standard Letter (A-F)"
+  code        String         // GH_PRIMARY, BECE_STANINE, LETTER_GRADE
+  description String?
+  isDefault   Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  scales      GradingScale[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@map("grading_systems")
+}
+
+model GradingScale {
+  id              String        @id @default(uuid())
+  gradingSystemId String
+  gradingSystem   GradingSystem @relation(fields: [gradingSystemId], references: [id], onDelete: Cascade)
+  grade           String        // 1, 2, 3... or A+, A, B...
+  minScore        Float
+  maxScore        Float
+  gradePoint      Float         @default(0)
+  descriptor      String        // HIGHEST, HIGHER, HIGH, HIGH_AVERAGE, AVERAGE, LOW_AVERAGE, LOWER, LOWEST, FAIL
+  remarks         String        // Excellent, Very Good, Good, Credit, Pass, Fail
+
+  @@index([gradingSystemId])
+  @@map("grading_scales")
+}
+
+model Assessment {
+  id                String    @id @default(uuid())
+  schoolId          String
+  school            School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classId           String
+  subjectId         String
+  academicYear      String
+  term              String
+  name              String    // Mid-Term CA 1, End-of-Term Exam
+  type              String    // CLASSWORK, ASSIGNMENT, QUIZ, TEST, SBA, EXAM
+  weightPercentage  Float     @default(30) // e.g. CA=30%, Exam=70%
+  maxMarks          Float     @default(100)
+  date              DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([subjectId])
+  @@map("assessments")
+}
+
+model ReportCard {
+  id                  String    @id @default(uuid())
+  schoolId            String
+  school              School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId           String
+  student             Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId             String?
+  academicYear        String    // e.g. "2025/2026"
+  term                String    // e.g. "Term 1"
+  
+  totalScore          Float     @default(0)
+  averageScore        Float     @default(0)
+  rank                Int?
+  aggregateScore      Int?      // Ghana BECE stanine aggregate (6 to 54)
+  aggregateRemark     String?   // "Distinction", "Merit", etc.
+  
+  attendancePresent   Int       @default(0)
+  attendanceTotal     Int       @default(0)
+  conduct             String?   @default("Good")
+  attitude            String?   @default("Hardworking")
+  interest            String?   @default("Sports & Reading")
+  
+  classTeacherRemarks String?
+  headteacherRemarks  String?
+  promotedTo          String?
+  
+  status              String    @default("DRAFT") // DRAFT, APPROVED, PUBLISHED
+  publishedAt         DateTime?
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([schoolId, studentId, academicYear, term])
+  @@index([schoolId])
+  @@index([studentId])
+  @@map("report_cards")
+}
+
+// ============================================
+// PHASE 6 UPGRADES: FEES, BILLING & REVERSALS
+// ============================================
+
+model FeeCategory {
+  id          String        @id @default(uuid())
+  schoolId    String
+  school      School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String        // Tuition, Feeding, Books, ICT, PTA, Examination, Transport, Boarding, Uniform
+  code        String
+  description String?
+  isOptional  Boolean       @default(false)
+  isActive    Boolean       @default(true)
+  frequency   String        @default("TERMLY") // TERMLY, ONE_TIME, ANNUAL, MONTHLY
+  bills       StudentBill[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@map("fee_categories")
+}
+
+model StudentBill {
+  id             String       @id @default(uuid())
+  schoolId       String
+  school         School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId      String
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeCategoryId  String?
+  feeCategory    FeeCategory? @relation(fields: [feeCategoryId], references: [id], onDelete: SetNull)
+  billNumber     String       // School unique bill #
+  academicYear   String
+  term           String
+  totalAmount    Float
+  discountAmount Float        @default(0)
+  paidAmount     Float        @default(0)
+  balance        Float
+  status         String       @default("PENDING") // PENDING, PARTIAL, PAID, OVERDUE
+  dueDate        DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([schoolId, billNumber])
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([feeCategoryId])
+  @@map("student_bills")
+}
+
+model PaymentAllocation {
+  id          String   @id @default(uuid())
+  paymentId   String
+  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  feeCategory String   // ARREARS, TUITION, FEEDING, TRANSPORT, OTHER
+  amount      Float
+  createdAt   DateTime @default(now())
+
+  @@index([paymentId])
+  @@map("payment_allocations")
+}
+
+model PaymentReversal {
+  id              String   @id @default(uuid())
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  paymentId       String   @unique
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  reversedBy      String   // User ID or name
+  reason          String
+  reversalReceipt String   @unique // e.g. REV-REC-00123
+  createdAt       DateTime @default(now())
+
+  @@index([schoolId])
+  @@map("payment_reversals")
+}
+
+// ============================================
+// ACCOUNTING: CHART OF ACCOUNTS, INCOME, BANK
+// ============================================
+
+model AccountHead {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String   // Tuition Income, Feeding Income, Salary Expense, Utilities, Stationery
+  code        String
+  type        String   // INCOME, EXPENSE, ASSET, LIABILITY
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@map("account_heads")
+}
+
+model IncomeTransaction {
+  id            String   @id @default(uuid())
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  accountHead   String   // Category code or name
+  amount        Float
+  currency      String   @default("GHS")
+  incomeDate    DateTime @default(now())
+  payer         String?
+  reference     String?
+  paymentMethod String   // CASH, BANK, MOBILE_MONEY
+  receiptNumber String?
+  description   String?
+  receivedBy    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([incomeDate])
+  @@map("income_transactions")
+}
+
+model BankAccount {
+  id             String   @id @default(uuid())
+  schoolId       String
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  accountName    String
+  bankName       String   // e.g. GCB, Ecobank, Stanbic, CalBank, MTN MoMo Merchant
+  accountNumber  String
+  branch         String?
+  openingBalance Float    @default(0)
+  currentBalance Float    @default(0)
+  currency       String   @default("GHS")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([schoolId, accountNumber])
+  @@index([schoolId])
+  @@map("bank_accounts")
+}
+
+// ============================================
+// PHASE 8 UPGRADES: EXEATS, BOARDING & VISITORS
+// ============================================
+
+model ExeatRequest {
+  id              String    @id @default(uuid())
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  studentId       String
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reason          String
+  destination     String
+  departureTime   DateTime
+  expectedReturn  DateTime
+  actualReturn    DateTime?
+  approvedBy      String?
+  status          String    @default("PENDING") // PENDING, APPROVED, REJECTED, RETURNED, OVERDUE
+  parentContacted Boolean   @default(false)
+  remarks         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([status])
+  @@map("exeat_requests")
+}
+
+model Dormitory {
+  id          String         @id @default(uuid())
+  schoolId    String
+  school      School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String         // e.g. "Hall of Excellence Block A"
+  gender      String         // MALE, FEMALE
+  houseMaster String?
+  capacity    Int            @default(50)
+  beds        DormitoryBed[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("dormitories")
+}
+
+model DormitoryBed {
+  id          String          @id @default(uuid())
+  dormitoryId String
+  dormitory   Dormitory       @relation(fields: [dormitoryId], references: [id], onDelete: Cascade)
+  bedNumber   String          // e.g. "BED-01-A"
+  isOccupied  Boolean         @default(false)
+  allocations BedAllocation[]
+
+  @@unique([dormitoryId, bedNumber])
+  @@index([dormitoryId])
+  @@map("dormitory_beds")
+}
+
+model BedAllocation {
+  id            String       @id @default(uuid())
+  bedId         String
+  bed           DormitoryBed @relation(fields: [bedId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  allocatedDate DateTime     @default(now())
+  releasedDate  DateTime?
+  status        String       @default("ACTIVE") // ACTIVE, VACATED
+
+  @@index([bedId])
+  @@index([studentId])
+  @@map("bed_allocations")
+}
+
+model VisitorLog {
+  id          String    @id @default(uuid())
+  schoolId    String
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  visitorName String
+  phoneNumber String
+  hostPerson  String    // Staff or student being visited
+  purpose     String    // ENQUIRY, PARENT_VISIT, DELIVERY, OFFICIAL
+  timeIn      DateTime  @default(now())
+  timeOut     DateTime?
+  badgeNumber String?
+  remarks     String?
+  recordedBy  String?
+  createdAt   DateTime  @default(now())
+
+  @@index([schoolId])
+  @@index([timeIn])
+  @@map("visitor_logs")
+}
+
+// ============================================
+// PHASE 5 UPGRADES: LESSON PLANS
+// ============================================
+
+model LessonPlan {
+  id             String   @id @default(uuid())
+  schoolId       String
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacherId      String
+  teacher        Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classId        String
+  subjectId      String
+  weekNumber     Int
+  lessonDate     DateTime
+  topic          String
+  objectives     String
+  contentSummary String
+  activities     String
+  resources      String?  // Teaching and Learning Materials (TLMs)
+  assessment     String?
+  evaluation     String?  // Teacher's reflection
+  status         String   @default("SUBMITTED") // DRAFT, SUBMITTED, APPROVED, REVISE
+  approvedBy     String?
+  reviewComments String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([teacherId])
+  @@index([classId])
+  @@map("lesson_plans")
+}
+
+// ============================================
+// PHASE 7 UPGRADES: HR & GHANA PAYROLL ENGINE
+// ============================================
+
+model SalaryStructure {
+  id                 String   @id @default(uuid())
+  schoolId           String
+  school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staffId            String   @unique
+  staff              Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  basicSalary        Float
+  housingAllowance   Float    @default(0)
+  transportAllowance Float    @default(0)
+  otherAllowances    Float    @default(0)
+  ssnitNumber        String?
+  tinNumber          String?  // Ghana Taxpayer Identification Number
+  bankName           String?
+  accountNumber      String?
+  effectiveDate      DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([schoolId])
+  @@map("salary_structures")
+}
+
+model PayrollPeriod {
+  id          String       @id @default(uuid())
+  schoolId    String
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  month       Int          // 1 to 12
+  year        Int          // e.g. 2026
+  status      String       @default("DRAFT") // DRAFT, REVIEW, APPROVED, FINALIZED, LOCKED
+  totalGross  Float        @default(0)
+  totalPaye   Float        @default(0)
+  totalSsnit  Float        @default(0)
+  totalNet    Float        @default(0)
+  approvedBy  String?
+  finalizedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  runs        PayrollRun[]
+  payslips    Payslip[]
+
+  @@unique([schoolId, month, year])
+  @@index([schoolId])
+  @@map("payroll_periods")
+}
+
+model PayrollRun {
+  id              String        @id @default(uuid())
+  payrollPeriodId String
+  payrollPeriod   PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  schoolId        String
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  processedBy     String?
+  totalStaff      Int           @default(0)
+  totalGross      Float         @default(0)
+  totalNet        Float         @default(0)
+  createdAt       DateTime      @default(now())
+
+  items           PayrollItem[]
+
+  @@index([payrollPeriodId])
+  @@index([schoolId])
+  @@map("payroll_runs")
+}
+
+model PayrollItem {
+  id              String     @id @default(uuid())
+  payrollRunId    String
+  payrollRun      PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  staffId         String
+  staff           Staff      @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  basicSalary     Float
+  allowances      Float      @default(0)
+  bonus           Float      @default(0)
+  grossSalary     Float
+  
+  // Ghana Statutory Deductions
+  taxableIncome   Float
+  paye            Float      // Ghana GRA PAYE
+  ssnitTier1      Float      @default(0) // 13.5% employer
+  ssnitTier2      Float      // 5.5% employee contribution
+  loansAdvance    Float      @default(0)
+  otherDeductions Float      @default(0)
+  totalDeductions Float
+  
+  netSalary       Float
+  paymentStatus   String     @default("PENDING") // PENDING, PAID
+
+  createdAt       DateTime   @default(now())
+
+  @@index([payrollRunId])
+  @@index([staffId])
+  @@map("payroll_items")
+}
+
+model Payslip {
+  id               String        @id @default(uuid())
+  schoolId         String
+  school           School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  payrollPeriodId  String
+  payrollPeriod    PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  staffId          String
+  staff            Staff         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  payslipNumber    String        @unique // e.g. SLIP-2026-09-001
+  
+  basicSalary      Float
+  allowances       Float
+  grossSalary      Float
+  paye             Float
+  ssnit            Float
+  otherDeductions  Float
+  totalDeductions  Float
+  netSalary        Float
+  
+  paymentMethod    String        @default("BANK")
+  paymentReference String?
+  generatedAt      DateTime      @default(now())
+
+  @@unique([payrollPeriodId, staffId])
+  @@index([schoolId])
+  @@index([staffId])
+  @@map("payslips")
+}
+
+// ============================================
+// PHASE 9 UPGRADES: SMS, MESSAGES & ID CARDS
+// ============================================
+
+model SmsLog {
+  id             String   @id @default(uuid())
+  schoolId       String
+  school         School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  recipientPhone String
+  message        String
+  senderId       String   // e.g. "TLS001" or School Name
+  creditsUsed    Float    @default(1)
+  status         String   @default("SENT") // SENT, DELIVERED, FAILED
+  providerRef    String?
+  createdAt      DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([status])
+  @@map("sms_logs")
+}
+
+model SmsTemplate {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  title       String   // Fee Reminder, Absence Alert, Result Notice
+  templateKey String   // FEE_REMINDER, ABSENT_ALERT, RESULT_READY, GENERAL
+  content     String   // "Dear Parent, your ward {student_name} has outstanding fees of {amount}..."
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([schoolId, templateKey])
+  @@index([schoolId])
+  @@map("sms_templates")
+}
+
+model Message {
+  id              String    @id @default(uuid())
+  schoolId        String
+  school          School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  senderUserId    String
+  recipientUserId String
+  subject         String?
+  content         String
+  isRead          Boolean   @default(false)
+  readAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([schoolId])
+  @@index([recipientUserId])
+  @@index([senderUserId])
+  @@map("messages")
+}
+
+model IdCardTemplate {
+  id                 String   @id @default(uuid())
+  schoolId           String
+  school             School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  templateType       String   // STUDENT, STAFF
+  layout             String   @default("STANDARD") // STANDARD, MODERN, COMPACT
+  primaryColor       String   @default("#1e3a8a")
+  showQrCode         Boolean  @default(true)
+  showBloodGroup     Boolean  @default(false)
+  showEmergencyPhone Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([schoolId, templateType])
+  @@index([schoolId])
+  @@map("id_card_templates")
+}
+
 

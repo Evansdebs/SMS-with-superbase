@@ -26,6 +26,11 @@ import { TransportModule } from './transport/transport.module';
 import { HrModule } from './hr/hr.module';
 import { BillingModule } from './billing/billing.module';
 import { RolesModule } from './roles/roles.module';
+import { AdmissionsModule } from './admissions/admissions.module';
+import { AccountingModule } from './accounting/accounting.module';
+import { OperationsModule } from './operations/operations.module';
+import { LessonPlansModule } from './lesson-plans/lesson-plans.module';
+import { CommunicationModule } from './communication/communication.module';
 
 @Module({
   imports: [
@@ -71,6 +76,11 @@ import { RolesModule } from './roles/roles.module';
     HrModule,
     BillingModule,
     RolesModule,
+    AdmissionsModule,
+    AccountingModule,
+    OperationsModule,
+    LessonPlansModule,
+    CommunicationModule,
   ],
   controllers: [],
   providers: [
