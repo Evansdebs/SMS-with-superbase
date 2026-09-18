@@ -80,9 +80,9 @@ export class RolesService {
       throw new BadRequestException(`Role "${roleId}" is not a recognized system role.`);
     }
 
-    // Validate that provided permissions exist in catalog or allow '*'
+    // Enforce strict security: School administrators may NOT assign wildcard '*' or platform-wide bypasses
     const validPermissionIds = new Set(PERMISSIONS_CATALOG.map((p) => p.id));
-    const sanitizedPermissions = permissions.filter((p) => p === '*' || validPermissionIds.has(p));
+    const sanitizedPermissions = permissions.filter((p) => validPermissionIds.has(p));
 
     const { matrix } = await this.getRoleMatrix(schoolId);
     matrix[roleId] = sanitizedPermissions;
@@ -107,7 +107,8 @@ export class RolesService {
 
     for (const [roleId, perms] of Object.entries(newMatrix)) {
       if (SYSTEM_ROLES.some((r) => r.id === roleId) && Array.isArray(perms)) {
-        matrix[roleId] = perms.filter((p) => p === '*' || validPermissionIds.has(p));
+        // Enforce: No wildcard '*' allowed for tenant-level roles
+        matrix[roleId] = perms.filter((p) => validPermissionIds.has(p));
       }
     }
 

@@ -23,13 +23,8 @@ export class SchoolMembershipGuard implements CanActivate {
       throw new UnauthorizedException('No school context found');
     }
 
-    // If memberships array is absent or empty, trust the strategy's prior validation
-    if (!user.memberships || user.memberships.length === 0) {
-      return true;
-    }
-
-    // Check if user has active membership in the school
-    const hasActiveMembership = user.memberships?.some(
+    // Strict verification: user must have an active membership matching user.schoolId
+    const hasActiveMembership = Array.isArray(user.memberships) && user.memberships.some(
       (membership: any) =>
         membership.schoolId === user.schoolId &&
         membership.status === 'ACTIVE'

@@ -1,9 +1,13 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { SuperAdminGuard } from './super-admin.guard';
 import { SchoolMembershipGuard } from './school-membership.guard';
+import { PermissionsGuard } from './permissions.guard';
 import { Reflector } from '@nestjs/core';
 import { StudentsService } from '../../students/students.service';
 import { TeachersService } from '../../teachers/teachers.service';
+import { RolesService } from '../../roles/roles.service';
+import { ResultsService } from '../../results/results.service';
+import { GradingService } from '../../academics/grading.service';
 
 describe('Tenant Isolation & Security Suite', () => {
   let reflector: Reflector;
@@ -226,6 +230,141 @@ describe('Tenant Isolation & Security Suite', () => {
           },
         }),
       );
+    });
+  });
+
+  describe('PermissionsGuard & Privilege Escalation Hardening', () => {
+    let permissionsGuard: PermissionsGuard;
+    let mockReflector: any;
+
+    beforeEach(() => {
+      mockReflector = {
+        getAllAndOverride: jest.fn(),
+      };
+      permissionsGuard = new PermissionsGuard(mockReflector);
+    });
+
+    it('should block user who does not possess required permission', () => {
+      mockReflector.getAllAndOverride.mockReturnValue(['fees.manage']);
+      const mockContext: any = {
+        getHandler: () => ({}),
+        getClass: () => ({}),
+        switchToHttp: () => ({
+          getRequest: () => ({
+            user: {
+              id: 'teacher-1',
+              accountType: 'USER',
+              membershipProfile: 'TEACHER',
+              permissions: ['results.record', 'attendance.record'],
+            },
+          }),
+        }),
+      };
+
+      expect(() => permissionsGuard.canActivate(mockContext)).toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('should allow user with exact required permission', () => {
+      mockReflector.getAllAndOverride.mockReturnValue(['attendance.record']);
+      const mockContext: any = {
+        getHandler: () => ({}),
+        getClass: () => ({}),
+        switchToHttp: () => ({
+          getRequest: () => ({
+            user: {
+              id: 'teacher-1',
+              accountType: 'USER',
+              membershipProfile: 'TEACHER',
+              permissions: ['attendance.record'],
+            },
+          }),
+        }),
+      };
+
+      const result = permissionsGuard.canActivate(mockContext);
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('RolesService Wildcard Privilege Prevention', () => {
+    let mockPrisma: any;
+    let rolesService: RolesService;
+
+    beforeEach(() => {
+      mockPrisma = {
+        schoolSetting: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          upsert: jest.fn().mockResolvedValue({}),
+        },
+      };
+      rolesService = new RolesService(mockPrisma);
+    });
+
+    it('should strip wildcard * when tenant admin attempts to assign wildcard to a role', async () => {
+      const result = await rolesService.updateRolePermissions(
+        'school-1',
+        'TEACHER',
+        ['*', 'students.view', 'nonexistent.fake.perm'],
+      );
+
+      // '*' and 'nonexistent.fake.perm' must be stripped; only valid catalog items retained
+      expect(result.permissions).not.toContain('*');
+      expect(result.permissions).not.toContain('nonexistent.fake.perm');
+      expect(result.permissions).toContain('students.view');
+    });
+  });
+
+  describe('ResultsService Locking Protection', () => {
+    let mockPrisma: any;
+    let resultsService: ResultsService;
+    let gradingService: GradingService;
+
+    beforeEach(() => {
+      mockPrisma = {
+        class: {
+          findFirst: jest.fn().mockResolvedValue({ id: 'class-1', level: 'JHS', schoolId: 'school-1' }),
+        },
+        subject: {
+          findFirst: jest.fn().mockResolvedValue({ id: 'subj-1', name: 'Mathematics', code: 'MATH', schoolId: 'school-1' }),
+        },
+        $transaction: jest.fn((txFn: any) => txFn(mockPrisma)),
+      };
+      gradingService = new GradingService();
+      resultsService = new ResultsService(mockPrisma, gradingService);
+    });
+
+    it('should reject silent overwrite if student result is already published and locked', async () => {
+      mockPrisma.student = {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'student-1',
+          firstName: 'Ama',
+          lastName: 'Osei',
+          admissionNumber: 'ADM-001',
+          schoolId: 'school-1',
+        }),
+      };
+      mockPrisma.result = {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'result-1',
+          schoolId: 'school-1',
+          studentId: 'student-1',
+          isPublished: true, // LOCKED / PUBLISHED
+          score: 85,
+        }),
+        update: jest.fn(),
+      };
+
+      await expect(
+        resultsService.recordBatchScores('school-1', {
+          classId: 'class-1',
+          subjectId: 'subj-1',
+          scores: [{ studentId: 'student-1', classwork: 30, test: 20, exam: 40 }],
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockPrisma.result.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -73,6 +73,11 @@ export class ResultsService {
         });
 
         if (existing) {
+          if (existing.isPublished) {
+            throw new BadRequestException(
+              `Results for student ${student.firstName} ${student.lastName} (${student.admissionNumber}) are locked and published. Modification requires an approved correction workflow.`,
+            );
+          }
           const updated = await tx.result.update({
             where: { id: existing.id },
             data: {
@@ -173,12 +178,15 @@ export class ResultsService {
     const enrichedResults = results.map((r) => {
       const sub = r.subjectId ? subjectMap.get(r.subjectId) : null;
       const subName = sub ? sub.name : 'General Subject';
-      const isCore = [
-        'English Language',
-        'Mathematics',
-        'Integrated Science',
-        'Social Studies',
-      ].some((core) => subName.toLowerCase().includes(core.toLowerCase()));
+      const subCode = (sub?.code || '').toUpperCase().trim();
+      const isCore =
+        ['ENG', 'MATH', 'SCI', 'SOC', 'CORE_ENG', 'CORE_MATH', 'CORE_SCI', 'CORE_SOC'].includes(subCode) ||
+        [
+          'English Language',
+          'Mathematics',
+          'Integrated Science',
+          'Social Studies',
+        ].some((core) => subName.toLowerCase().includes(core.toLowerCase()));
 
       return {
         id: r.id,

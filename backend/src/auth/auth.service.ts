@@ -27,8 +27,15 @@ export class AuthService {
     try {
       let userId: string | null = null;
 
-      // Support development / test tokens (e.g. dev-token:userId or mock-token:userId)
+      const allowDevTokens =
+        process.env.NODE_ENV !== 'production' &&
+        (process.env.ALLOW_DEV_TOKENS === 'true' || this.configService.get<string>('ALLOW_DEV_TOKENS') === 'true');
+
+      // Support development / test tokens ONLY when ALLOW_DEV_TOKENS=true and not in production
       if (token.startsWith('dev-token:') || token.startsWith('mock-token:')) {
+        if (!allowDevTokens) {
+          throw new UnauthorizedException('Development tokens are strictly disabled in this environment');
+        }
         userId = token.split(':')[1];
       } else if (this.supabase) {
         const { data, error } = await this.supabase.auth.getUser(token);
@@ -107,11 +114,11 @@ export class AuthService {
   }
 
   async superAdminLogin(email: string, password: string) {
-    const isDevOrPlaceholder =
-      process.env.NODE_ENV !== 'production' ||
-      this.configService.get<string>('SUPABASE_URL')?.includes('placeholder');
+    const allowDevTokens =
+      process.env.NODE_ENV !== 'production' &&
+      (process.env.ALLOW_DEV_TOKENS === 'true' || this.configService.get<string>('ALLOW_DEV_TOKENS') === 'true');
 
-    if (isDevOrPlaceholder && (email === 'admin@platform.com' || email.toLowerCase().includes('admin'))) {
+    if (allowDevTokens && (email === 'admin@platform.com' || email.toLowerCase().includes('admin'))) {
       const devUserId = '00000000-0000-0000-0000-000000000001';
       return {
         access_token: `dev-token:${devUserId}`,
@@ -126,6 +133,11 @@ export class AuthService {
           },
         },
       };
+    }
+
+    // Fail safely if Supabase is not configured in production
+    if (!this.supabase) {
+      throw new UnauthorizedException('Authentication provider is not properly configured');
     }
 
     // Authenticate with Supabase
@@ -175,11 +187,11 @@ export class AuthService {
 
   async schoolLogin(schoolCode: string, email: string, password: string) {
     const code = (schoolCode || 'TLS001').trim().toUpperCase();
-    const isDevOrPlaceholder =
-      process.env.NODE_ENV !== 'production' ||
-      this.configService.get<string>('SUPABASE_URL')?.includes('placeholder');
+    const allowDevTokens =
+      process.env.NODE_ENV !== 'production' &&
+      (process.env.ALLOW_DEV_TOKENS === 'true' || this.configService.get<string>('ALLOW_DEV_TOKENS') === 'true');
 
-    if (isDevOrPlaceholder) {
+    if (allowDevTokens) {
       const devUserId = '11111111-1111-1111-1111-111111111111';
       const devSchoolId = '22222222-2222-2222-2222-222222222222';
       const normalizedEmail = email.toLowerCase();
