@@ -13,15 +13,18 @@ import { StudentsService } from './students.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/create-student.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SchoolMembershipGuard } from '../common/guards/school-membership.guard';
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { CurrentTenant } from '../common/decorators/tenant.decorator';
 import { TenantContext } from '../common/interfaces/tenant-context.interface';
 
 @Controller('students')
-@UseGuards(JwtAuthGuard, SchoolMembershipGuard)
+@UseGuards(JwtAuthGuard, SchoolMembershipGuard, PermissionsGuard)
 export class StudentsController {
   constructor(private studentsService: StudentsService) {}
 
   @Post()
+  @RequirePermissions('students.manage')
   create(
     @CurrentTenant() tenant: TenantContext,
     @Body() dto: CreateStudentDto,
@@ -30,6 +33,7 @@ export class StudentsController {
   }
 
   @Get()
+  @RequirePermissions('students.view')
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query('page') page?: string,
@@ -49,6 +53,7 @@ export class StudentsController {
   }
 
   @Get(':id')
+  @RequirePermissions('students.view')
   findOne(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
@@ -57,6 +62,7 @@ export class StudentsController {
   }
 
   @Put(':id')
+  @RequirePermissions('students.manage')
   update(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
@@ -66,6 +72,7 @@ export class StudentsController {
   }
 
   @Delete(':id')
+  @RequirePermissions('students.manage')
   remove(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,

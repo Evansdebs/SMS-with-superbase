@@ -8,6 +8,8 @@ import { TeachersService } from '../../teachers/teachers.service';
 import { RolesService } from '../../roles/roles.service';
 import { ResultsService } from '../../results/results.service';
 import { GradingService } from '../../academics/grading.service';
+import { ParentsService } from '../../parents/parents.service';
+import { FeesService } from '../../fees/fees.service';
 
 describe('Tenant Isolation & Security Suite', () => {
   let reflector: Reflector;
@@ -365,6 +367,69 @@ describe('Tenant Isolation & Security Suite', () => {
       ).rejects.toThrow(BadRequestException);
 
       expect(mockPrisma.result.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Comprehensive Multi-Tenant Cross-School Data Access Protection (School A vs School B)', () => {
+    let mockPrisma: any;
+    let parentsService: ParentsService;
+    let feesService: FeesService;
+
+    beforeEach(() => {
+      mockPrisma = {
+        parent: {
+          findFirst: jest.fn(),
+          findMany: jest.fn(),
+          count: jest.fn(),
+        },
+        studentFee: {
+          findFirst: jest.fn(),
+          findMany: jest.fn(),
+        },
+        $transaction: jest.fn((txFn: any) => txFn(mockPrisma)),
+      };
+      parentsService = new ParentsService(mockPrisma);
+      feesService = new FeesService(mockPrisma);
+    });
+
+    it('should prevent School A user from retrieving parent record belonging to School B', async () => {
+      // Prisma query enforces { id: "parent-b", schoolId: "school-a" } which returns null
+      mockPrisma.parent.findFirst.mockResolvedValue(null);
+
+      await expect(
+        parentsService.findOne('school-a-id', 'parent-b-id'),
+      ).rejects.toThrow('Parent not found in this school');
+
+      expect(mockPrisma.parent.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'parent-b-id',
+            schoolId: 'school-a-id',
+          },
+        }),
+      );
+    });
+
+    it('should prevent School A user from recording payments against fee records of School B', async () => {
+      mockPrisma.studentFee.findFirst.mockResolvedValue(null);
+
+      await expect(
+        feesService.recordPayment(
+          'school-a-id',
+          'fee-record-belonging-to-school-b',
+          { amountPaid: 500, paymentMethod: 'CASH' },
+          'user-a',
+        ),
+      ).rejects.toThrow('Fee record not found in this school');
+
+      expect(mockPrisma.studentFee.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'fee-record-belonging-to-school-b',
+            schoolId: 'school-a-id',
+          },
+        }),
+      );
     });
   });
 });

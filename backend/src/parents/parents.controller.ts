@@ -10,15 +10,18 @@ import {
 import { ParentsService } from './parents.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { SchoolMembershipGuard } from '../common/guards/school-membership.guard';
+import { PermissionsGuard } from '../common/guards/permissions.guard';
+import { RequirePermissions } from '../common/decorators/permissions.decorator';
 import { CurrentTenant } from '../common/decorators/tenant.decorator';
 import { TenantContext } from '../common/interfaces/tenant-context.interface';
 
 @Controller('parents')
-@UseGuards(JwtAuthGuard, SchoolMembershipGuard)
+@UseGuards(JwtAuthGuard, SchoolMembershipGuard, PermissionsGuard)
 export class ParentsController {
   constructor(private parentsService: ParentsService) {}
 
   @Get()
+  @RequirePermissions('parents.view')
   findAll(
     @CurrentTenant() tenant: TenantContext,
     @Query('page') page?: string,
@@ -34,6 +37,7 @@ export class ParentsController {
   }
 
   @Get(':id')
+  @RequirePermissions('parents.view')
   findOne(
     @CurrentTenant() tenant: TenantContext,
     @Param('id') id: string,
@@ -42,6 +46,7 @@ export class ParentsController {
   }
 
   @Post()
+  @RequirePermissions('parents.manage')
   create(
     @CurrentTenant() tenant: TenantContext,
     @Body() data: any,

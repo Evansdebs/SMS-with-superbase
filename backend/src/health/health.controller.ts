@@ -26,7 +26,7 @@ export class HealthController {
   }
 
   @Post()
-  @RequirePermissions('health.manage')
+  @RequirePermissions('health.create')
   createRecord(
     @Request() req: any,
     @Body()
