@@ -132,7 +132,7 @@ export default function ResultsGradebookPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-50 text-slate-900 dark:text-slate-100 flex flex-col">
       <SchoolNav />
 
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-8 max-w-5xl">
@@ -188,7 +188,7 @@ export default function ResultsGradebookPage() {
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-semibold"
+              className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-50 text-xs font-semibold"
             >
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -203,7 +203,7 @@ export default function ResultsGradebookPage() {
             <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-semibold"
+              className="w-full h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-50 text-xs font-semibold"
             >
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -261,7 +261,7 @@ export default function ResultsGradebookPage() {
                           disabled={isLocked}
                           value={s.ca}
                           onChange={(e) => updateScore(s.studentId, 'ca', parseInt(e.target.value, 10))}
-                          className="w-16 h-8 text-center rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-semibold"
+                          className="w-16 h-8 text-center rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-50 font-semibold"
                         />
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -272,7 +272,7 @@ export default function ResultsGradebookPage() {
                           disabled={isLocked}
                           value={s.exam}
                           onChange={(e) => updateScore(s.studentId, 'exam', parseInt(e.target.value, 10))}
-                          className="w-16 h-8 text-center rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 font-semibold"
+                          className="w-16 h-8 text-center rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-50 font-semibold"
                         />
                       </td>
                       <td className="px-4 py-3 text-center font-extrabold text-sm text-slate-900 dark:text-white">

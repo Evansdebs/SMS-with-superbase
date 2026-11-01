@@ -1,6 +1,7 @@
 // Frontend API Client with tenant scoping, retry with exponential backoff, and timeout resilience
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const RAW_API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/+$/, '');
+const API_BASE_URL = RAW_API_BASE_URL.endsWith('/api/v1') ? RAW_API_BASE_URL : `${RAW_API_BASE_URL}/api/v1`;
 
 export interface AuthSession {
   token?: string;
@@ -83,12 +84,15 @@ export async function apiRequest<T = any>(
   let attempt = 0;
   let lastError: any = null;
 
+  const cleanEndpoint = endpoint.startsWith('/api/v1') ? endpoint.slice('/api/v1'.length) : endpoint;
+  const targetUrl = `${API_BASE_URL}${cleanEndpoint.startsWith('/') ? cleanEndpoint : `/${cleanEndpoint}`}`;
+
   while (attempt <= retries) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const res = await fetch(targetUrl, {
         ...restOptions,
         headers,
         signal: controller.signal,
@@ -135,4 +139,28 @@ export async function apiRequest<T = any>(
   }
 
   throw lastError;
+}
+
+export async function apiGet<T = any>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
+  return apiRequest<T>(endpoint, { ...options, method: 'GET' });
+}
+
+export async function apiPost<T = any>(endpoint: string, body?: any, options?: ApiRequestOptions): Promise<T> {
+  return apiRequest<T>(endpoint, {
+    ...options,
+    method: 'POST',
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function apiPut<T = any>(endpoint: string, body?: any, options?: ApiRequestOptions): Promise<T> {
+  return apiRequest<T>(endpoint, {
+    ...options,
+    method: 'PUT',
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+export async function apiDelete<T = any>(endpoint: string, options?: ApiRequestOptions): Promise<T> {
+  return apiRequest<T>(endpoint, { ...options, method: 'DELETE' });
 }

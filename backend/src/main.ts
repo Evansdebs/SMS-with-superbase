@@ -54,6 +54,19 @@ async function bootstrap() {
     ],
   });
 
+  // ── URL Rewrite Middleware (Route normalization) ─────────────────────────
+  // Automatically routes requests made without /api/v1 to /api/v1
+  app.use((req: any, res: any, next: () => void) => {
+    if (
+      !req.url.startsWith('/api/v1') &&
+      !req.url.startsWith('/api/docs') &&
+      req.url !== '/'
+    ) {
+      req.url = `/api/v1${req.url.startsWith('/') ? req.url : `/${req.url}`}`;
+    }
+    next();
+  });
+
   // ── Global prefix ─────────────────────────────────────────────────────────
   app.setGlobalPrefix('api/v1');
 

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, ArrowRight, Sparkles, CheckCircle2, Lock } from 'lucide-react';
+import { ShieldAlert, ArrowRight, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,29 +51,29 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 relative">
-      <Card className="w-full max-w-md bg-slate-900 border-slate-800 shadow-xl relative z-10">
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex items-center justify-center p-4 relative">
+      <Card className="w-full max-w-md bg-white border border-slate-200 shadow-xl rounded-2xl relative z-10">
         <CardHeader className="space-y-1.5 text-center pb-4">
-          <div className="mx-auto h-12 w-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 shadow-sm mb-1">
-            <ShieldAlert className="h-6 w-6 text-slate-300" />
+          <div className="mx-auto h-12 w-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shadow-2xs mb-1">
+            <ShieldAlert className="h-6 w-6 text-amber-600" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-white">
+          <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
             Platform Super Admin
           </CardTitle>
-          <CardDescription className="text-xs text-slate-400">
+          <CardDescription className="text-xs text-slate-500">
             Multi-Tenant Platform Control • Restricted Access
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-xs">
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
                 {error}
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label htmlFor="email" className="text-xs font-medium text-slate-300">
+              <label htmlFor="email" className="text-xs font-semibold text-slate-700">
                 Super Admin Email
               </label>
               <Input
@@ -83,12 +83,12 @@ export default function AdminLogin() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-slate-950 border-slate-800 text-white h-10 text-sm focus:border-slate-600"
+                className="bg-white border-slate-200 text-slate-900 h-10 text-sm focus:border-amber-500"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="password" className="text-xs font-medium text-slate-300">
+              <label htmlFor="password" className="text-xs font-semibold text-slate-700">
                 Master Password
               </label>
               <Input
@@ -98,13 +98,13 @@ export default function AdminLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-slate-950 border-slate-800 text-white h-10 text-sm focus:border-slate-600"
+                className="bg-white border-slate-200 text-slate-900 h-10 text-sm focus:border-amber-500"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-10 bg-slate-100 hover:bg-white text-slate-950 font-semibold shadow-sm transition-all"
+              className="w-full h-10 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow-xs transition-all"
               disabled={isLoading}
             >
               {isLoading ? 'Authenticating...' : 'Sign In as Super Admin'}
@@ -112,11 +112,11 @@ export default function AdminLogin() {
             </Button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-            <Link href="/" className="hover:text-white transition-colors">
+          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <Link href="/" className="hover:text-slate-900 transition-colors">
               ← Platform Home
             </Link>
-            <Link href="/school/login" className="hover:text-white transition-colors">
+            <Link href="/school/login" className="hover:text-slate-900 transition-colors">
               School Portal →
             </Link>
           </div>

@@ -101,7 +101,7 @@ export default function AttendancePage() {
   const attendanceRate = total > 0 ? Math.round(((presentCount + lateCount) / total) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-50 text-slate-900 dark:text-slate-100 flex flex-col">
       <SchoolNav />
 
       <main className="flex-1 container mx-auto px-4 sm:px-6 py-8 max-w-5xl">
@@ -155,7 +155,7 @@ export default function AttendancePage() {
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white"
+              className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-50 text-xs font-semibold text-slate-900 dark:text-white"
             >
               {classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
@@ -171,7 +171,7 @@ export default function AttendancePage() {
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs font-semibold text-slate-900 dark:text-white"
+              className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-50 text-xs font-semibold text-slate-900 dark:text-white"
             />
           </Card>
 
@@ -272,7 +272,7 @@ export default function AttendancePage() {
                             )
                           );
                         }}
-                        className="w-full h-8 px-2.5 rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs"
+                        className="w-full h-8 px-2.5 rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-50 text-xs"
                       />
                     </td>
                   </tr>

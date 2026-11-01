@@ -6,24 +6,35 @@ import { apiRequest } from '@/lib/api';
 import {
   Building2,
   ChevronLeft,
-  ShieldCheck,
   Users,
-  GraduationCap,
-  Calendar,
-  Key,
-  Lock,
-  DollarSign,
-  AlertTriangle,
-  CheckCircle2,
-  Settings,
-  ExternalLink,
+  Save,
+  Sliders,
+  CreditCard,
+  ToggleLeft,
+  ToggleRight,
+  RefreshCw,
 } from 'lucide-react';
 import { AdminNav } from '@/components/layout/AdminNav';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Modal } from '@/components/ui/modal';
+
+const availableModules = [
+  { key: 'attendance', name: 'Attendance Register', desc: 'Daily roll call, late, absent, and excused tracking' },
+  { key: 'results_stanine', name: 'Results & Stanine Grading', desc: 'CA 50% + Exam 50% entry and BECE 9-point stanine aggregates' },
+  { key: 'fees', name: 'Fee Collections & Finance', desc: 'Tuition fees, receipts, fee schedules, and debtor reports' },
+  { key: 'timetable', name: 'Timetable & Class Schedules', desc: 'Weekly period grids, classroom and teacher allocations' },
+  { key: 'assignments', name: 'Assignments & Homework', desc: 'Student assignments, deadlines, and submissions' },
+  { key: 'parents', name: 'Parent Link & Directory', desc: 'Parent/guardian accounts and child linking' },
+  { key: 'discipline', name: 'Discipline & Conduct', desc: 'Infractions, merits, and sanction management' },
+  { key: 'health', name: 'Health & Sick Bay', desc: 'Medical visits, health conditions, and incident logs' },
+  { key: 'library', name: 'Library & Book Loans', desc: 'Catalog, book borrowing, and returns' },
+  { key: 'inventory', name: 'Inventory & Fixed Assets', desc: 'Campus assets and equipment register' },
+  { key: 'transport', name: 'Transport Fleet', desc: 'Bus routes, vehicle manifests, and stops' },
+  { key: 'hr', name: 'HR & Staff Leave', desc: 'Employee records and leave approval workflows' },
+  { key: 'billing', name: 'SaaS Platform Billing', desc: 'Allows school admins to view subscription plans and invoices' },
+];
 
 export default function AdminSchoolDetailPage({
   params,
@@ -33,321 +44,584 @@ export default function AdminSchoolDetailPage({
   const resolvedParams = use(params);
   const schoolId = resolvedParams.id;
 
-  const [status, setStatus] = useState<'ACTIVE' | 'SUSPENDED' | 'ARCHIVED'>('ACTIVE');
-  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'modules' | 'subscription' | 'users'>('overview');
   const [loading, setLoading] = useState(true);
+  const [savingDetails, setSavingDetails] = useState(false);
+  const [savingModules, setSavingModules] = useState(false);
+  const [savingSub, setSavingSub] = useState(false);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Dynamic school data loaded from database
+  // School data
   const [school, setSchool] = useState<any>({
     id: schoolId,
     name: 'Loading School...',
     schoolCode: '...',
-    motto: '',
     email: '',
-    phone: '',
+    phoneNumber: '',
     address: '',
-    gpsAddress: '',
-    createdAt: 'Recently',
-    plan: 'Standard Tier',
-    metrics: {
-      students: 0,
-      teachers: 0,
-      classes: 0,
-      parents: 0,
-      totalFeesExpected: 0,
-      totalFeesCollected: 0,
-    },
-    primaryAdmin: {
-      name: 'Administrator',
-      email: '',
-      role: 'HEAD_OF_INSTITUTION',
-      lastLogin: 'Never',
-    },
+    status: 'ACTIVE',
+    createdAt: '',
+    academicYear: '2025/2026',
+    currentTerm: 'Term 1',
+    _count: { students: 0, teachers: 0, classes: 0, subjects: 0, memberships: 0 },
+    memberships: [],
   });
 
-  useEffect(() => {
-    const fetchSchool = async () => {
-      setLoading(true);
-      try {
-        const res = await apiRequest(`/admin/schools/${schoolId}`);
-        if (res?.id) {
-          setSchool({
-            id: res.id,
-            name: res.name || 'School Tenant',
-            schoolCode: res.schoolCode || 'SCH',
-            motto: res.motto || '',
-            email: res.email || '',
-            phone: res.phoneNumber || '',
-            address: res.address || '',
-            gpsAddress: res.gpsAddress || '',
-            createdAt: res.createdAt ? new Date(res.createdAt).toISOString().split('T')[0] : 'Today',
-            plan: res.plan || 'Standard',
-            metrics: {
-              students: res._count?.students || 0,
-              teachers: res._count?.teachers || 0,
-              classes: res._count?.classes || 0,
-              parents: res._count?.parents || 0,
-              totalFeesExpected: 0,
-              totalFeesCollected: 0,
-            },
-            primaryAdmin: {
-              name: res.adminName || 'Institutional Admin',
-              email: res.adminEmail || res.email || 'admin@school.edu',
-              role: 'HEAD_OF_INSTITUTION',
-              lastLogin: 'Active',
-            },
-          });
-          if (res.status) setStatus(res.status);
-        }
-      } catch {
-        // In case offline, keep clean dynamic representation
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Module toggles
+  const [moduleConfig, setModuleConfig] = useState<Record<string, boolean>>({
+    attendance: true,
+    results_stanine: true,
+    fees: true,
+    timetable: true,
+    assignments: true,
+    parents: true,
+    discipline: true,
+    health: true,
+    library: true,
+    inventory: true,
+    transport: true,
+    hr: true,
+    billing: true,
+  });
 
-    fetchSchool();
+  // Subscription state
+  const [subscription, setSubscription] = useState({
+    tier: 'PRO',
+    billingCycle: 'ANNUAL',
+    studentLimit: 1000,
+    status: 'ACTIVE',
+  });
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [schoolRes, configRes] = await Promise.all([
+        apiRequest(`/admin/schools/${schoolId}`),
+        apiRequest(`/admin/schools/${schoolId}/config`).catch(() => null),
+      ]);
+
+      if (schoolRes?.id) {
+        setSchool(schoolRes);
+      }
+      if (configRes) {
+        setModuleConfig((prev) => ({ ...prev, ...configRes }));
+      }
+    } catch (err: any) {
+      console.warn('Could not load live school data', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
   }, [schoolId]);
 
-  const handleResetPassword = (e: React.FormEvent) => {
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      await apiRequest(`/admin/schools/${schoolId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus }),
+      });
+      setSchool((prev: any) => ({ ...prev, status: newStatus }));
+      showNotification('success', `School status updated to ${newStatus}`);
+    } catch (err: any) {
+      showNotification('error', err.message || 'Failed to update status');
+    }
+  };
+
+  const handleSaveDetails = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPassword) return;
-    setPasswordSuccess(true);
-    setTimeout(() => {
-      setPasswordSuccess(false);
-      setIsResetPasswordModalOpen(false);
-      setNewPassword('');
-    }, 1800);
+    setSavingDetails(true);
+    try {
+      await apiRequest(`/admin/schools/${schoolId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: school.name,
+          email: school.email,
+          phoneNumber: school.phoneNumber,
+          address: school.address,
+        }),
+      });
+      showNotification('success', 'School details updated successfully');
+    } catch (err: any) {
+      showNotification('error', err.message || 'Failed to update school');
+    } finally {
+      setSavingDetails(false);
+    }
+  };
+
+  const toggleModule = (modKey: string) => {
+    setModuleConfig((prev) => ({
+      ...prev,
+      [modKey]: !prev[modKey],
+    }));
+  };
+
+  const handleSaveModules = async () => {
+    setSavingModules(true);
+    try {
+      await apiRequest(`/admin/schools/${schoolId}/config`, {
+        method: 'PATCH',
+        body: JSON.stringify(moduleConfig),
+      });
+      showNotification('success', 'Tenant module configuration saved');
+    } catch (err: any) {
+      showNotification('error', err.message || 'Failed to save module configuration');
+    } finally {
+      setSavingModules(false);
+    }
+  };
+
+  const handleSaveSubscription = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSub(true);
+    try {
+      await apiRequest(`/admin/subscriptions/schools/${schoolId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(subscription),
+      });
+      showNotification('success', `Subscription updated to ${subscription.tier}`);
+    } catch (err: any) {
+      showNotification('error', err.message || 'Failed to update subscription');
+    } finally {
+      setSavingSub(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <AdminNav />
 
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Breadcrumbs & Navigation */}
-        <div className="flex items-center space-x-2 text-xs text-slate-400 mb-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Breadcrumb & Navigation */}
+        <div className="flex items-center justify-between">
           <Link
             href="/admin/schools"
-            className="hover:text-white flex items-center gap-1 transition-colors"
+            className="inline-flex items-center space-x-1.5 text-xs text-slate-500 hover:text-slate-900 transition-colors"
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
-            <span>All School Tenants</span>
+            <ChevronLeft className="h-4 w-4" />
+            <span>Back to School Tenants</span>
           </Link>
-          <span>/</span>
-          <span className="text-amber-400 font-mono font-semibold">{school.schoolCode}</span>
+
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-slate-500">Tenant Status:</span>
+            <Badge
+              variant={
+                school.status === 'ACTIVE'
+                  ? 'success'
+                  : school.status === 'SUSPENDED'
+                  ? 'danger'
+                  : 'secondary'
+              }
+            >
+              {school.status}
+            </Badge>
+          </div>
         </div>
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-3xl font-bold tracking-tight text-white">{school.name}</h1>
-              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-950/60 text-amber-400 border border-amber-800/60">
-                {school.schoolCode}
-              </span>
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                  status === 'ACTIVE'
-                    ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60'
-                    : 'bg-rose-950/60 text-rose-400 border-rose-800/60'
-                }`}
-              >
-                {status}
-              </span>
-            </div>
-            <p className="text-sm text-slate-400 mt-1">{school.motto} • Enrolled {school.createdAt}</p>
-          </div>
-
-          <div className="flex items-center space-x-3">
+        {notification && (
+          <div
+            className={`p-3.5 rounded-lg text-xs font-medium border flex items-center justify-between ${
+              notification.type === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-rose-50 border-rose-200 text-rose-800'
+            }`}
+          >
+            <span>{notification.message}</span>
             <button
-              onClick={() => setStatus(status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                status === 'ACTIVE'
-                  ? 'border-rose-900/60 text-rose-400 hover:bg-rose-950/50'
-                  : 'border-emerald-900/60 text-emerald-400 hover:bg-emerald-950/50'
-              }`}
+              onClick={() => setNotification(null)}
+              className="text-slate-400 hover:text-slate-600 ml-2 text-sm font-bold"
             >
-              {status === 'ACTIVE' ? 'Suspend Access' : 'Reactivate School'}
+              ✕
             </button>
-
-            <Link href="/school/dashboard" target="_blank">
-              <Button className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold flex items-center gap-1.5">
-                <ExternalLink className="h-3.5 w-3.5" />
-                <span>Launch School Portal</span>
-              </Button>
-            </Link>
           </div>
-        </div>
+        )}
 
-        {/* Tenant Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-slate-900/80 border-slate-800 text-white">
-            <CardContent className="p-4">
-              <div className="text-xs font-medium text-slate-400 flex items-center gap-1">
-                <GraduationCap className="h-3.5 w-3.5 text-blue-400" /> Enrolled Students
+        {/* Tenant Header Card */}
+        <Card className="bg-white border-slate-200 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="h-14 w-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 flex-shrink-0">
+                  <Building2 className="h-7 w-7 text-amber-500" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-3">
+                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                      {school.name}
+                    </h1>
+                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                      {school.schoolCode}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {school.address || 'Address not registered'} • Academic Term: {school.academicYear || '2025/2026'} ({school.currentTerm || 'Term 1'})
+                  </p>
+                </div>
               </div>
-              <div className="text-2xl font-bold text-white mt-1">
-                {school.metrics.students}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-900/80 border-slate-800 text-white">
-            <CardContent className="p-4">
-              <div className="text-xs font-medium text-slate-400 flex items-center gap-1">
-                <Users className="h-3.5 w-3.5 text-emerald-400" /> Faculty Staff
-              </div>
-              <div className="text-2xl font-bold text-white mt-1">
-                {school.metrics.teachers}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-900/80 border-slate-800 text-white">
-            <CardContent className="p-4">
-              <div className="text-xs font-medium text-slate-400 flex items-center gap-1">
-                <Building2 className="h-3.5 w-3.5 text-purple-400" /> Academic Classes
-              </div>
-              <div className="text-2xl font-bold text-white mt-1">
-                {school.metrics.classes}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-900/80 border-slate-800 text-white">
-            <CardContent className="p-4">
-              <div className="text-xs font-medium text-slate-400 flex items-center gap-1">
-                <DollarSign className="h-3.5 w-3.5 text-amber-400" /> Total Fee Revenue
-              </div>
-              <div className="text-2xl font-bold text-amber-400 mt-1">
-                GHS {school.metrics.totalFeesCollected.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Detailed Information Panels */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Tenant Contact & Metadata */}
-          <Card className="bg-slate-900/60 border-slate-800 text-white">
-            <CardHeader>
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-amber-400" />
-                <span>Tenant Profile & Location</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Institutional Email:</span>
-                <span className="font-mono text-slate-200">{school.email}</span>
+              {/* Status Action Buttons */}
+              <div className="flex items-center space-x-2">
+                {school.status !== 'ACTIVE' && (
+                  <Button
+                    onClick={() => handleStatusChange('ACTIVE')}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 shadow-sm"
+                  >
+                    Activate School
+                  </Button>
+                )}
+                {school.status !== 'SUSPENDED' && (
+                  <Button
+                    onClick={() => handleStatusChange('SUSPENDED')}
+                    variant="outline"
+                    className="border-rose-200 text-rose-600 hover:bg-rose-50 text-xs h-8"
+                  >
+                    Suspend School
+                  </Button>
+                )}
+                <Button
+                  onClick={fetchData}
+                  variant="outline"
+                  className="border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs h-8 shadow-xs"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                  Refresh
+                </Button>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Telephone:</span>
-                <span className="text-slate-200">{school.phone}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Campus Address:</span>
-                <span className="text-slate-200 text-right max-w-xs">{school.address}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Ghana Post GPS:</span>
-                <span className="font-mono text-amber-400 font-bold">{school.gpsAddress}</span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-400">Subscription Tier:</span>
-                <span className="text-emerald-400 font-semibold">{school.plan}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Primary Administrator */}
-          <Card className="bg-slate-900/60 border-slate-800 text-white">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                <span>Primary Tenant Administrator</span>
-              </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsResetPasswordModalOpen(true)}
-                className="text-xs bg-slate-800 border-slate-700 text-slate-300 hover:text-white"
-              >
-                <Key className="h-3.5 w-3.5 mr-1" />
-                <span>Reset Credentials</span>
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Administrator Name:</span>
-                <span className="font-semibold text-slate-200">{school.primaryAdmin.name}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Login Account:</span>
-                <span className="font-mono text-slate-200">{school.primaryAdmin.email}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">System Role:</span>
-                <Badge variant="info" className="text-[10px]">
-                  {school.primaryAdmin.role}
-                </Badge>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-400">Recent Activity:</span>
-                <span className="text-slate-400">{school.primaryAdmin.lastLogin}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-
-      {/* Reset Admin Password Modal */}
-      <Modal
-        isOpen={isResetPasswordModalOpen}
-        onClose={() => setIsResetPasswordModalOpen(false)}
-        title="Reset Tenant Admin Credentials"
-        description={`Set a new temporary password for ${school.primaryAdmin.email}`}
-      >
-        <form onSubmit={handleResetPassword} className="space-y-4">
-          {passwordSuccess && (
-            <div className="p-3 bg-emerald-950/40 border border-emerald-800 rounded-xl text-emerald-400 text-xs flex items-center space-x-2">
-              <CheckCircle2 className="h-4 w-4 shrink-0" />
-              <span>Password successfully reset! Instructions dispatched to user.</span>
             </div>
-          )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              New Password
-            </label>
-            <Input
-              type="password"
-              required
-              placeholder="Enter new temporary password..."
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="bg-slate-800 border-slate-700 text-white"
-            />
-          </div>
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-100">
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+                <div className="text-[11px] text-slate-500">Total Students</div>
+                <div className="text-lg font-bold text-slate-900 mt-0.5">{school._count?.students || 0}</div>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+                <div className="text-[11px] text-slate-500">Faculty &amp; Staff</div>
+                <div className="text-lg font-bold text-slate-900 mt-0.5">{school._count?.teachers || 0}</div>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+                <div className="text-[11px] text-slate-500">Classes</div>
+                <div className="text-lg font-bold text-slate-900 mt-0.5">{school._count?.classes || 0}</div>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80">
+                <div className="text-[11px] text-slate-500">Portal Members</div>
+                <div className="text-lg font-bold text-slate-900 mt-0.5">{school._count?.memberships || 0}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="flex items-center justify-end space-x-2 pt-4 border-t border-slate-800">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setIsResetPasswordModalOpen(false)}
-              className="text-xs"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              className="text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-black"
-            >
-              Confirm Password Reset
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        {/* Tab Navigation */}
+        <div className="border-b border-slate-200 flex space-x-6 text-xs">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`pb-3 font-semibold transition-colors flex items-center space-x-1.5 ${
+              activeTab === 'overview'
+                ? 'border-b-2 border-amber-500 text-amber-600'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Building2 className="h-4 w-4" />
+            <span>School Details</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('modules')}
+            className={`pb-3 font-semibold transition-colors flex items-center space-x-1.5 ${
+              activeTab === 'modules'
+                ? 'border-b-2 border-amber-500 text-amber-600'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Sliders className="h-4 w-4" />
+            <span>Feature / Module Toggles</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('subscription')}
+            className={`pb-3 font-semibold transition-colors flex items-center space-x-1.5 ${
+              activeTab === 'subscription'
+                ? 'border-b-2 border-amber-500 text-amber-600'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <CreditCard className="h-4 w-4" />
+            <span>Subscription &amp; Plan</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`pb-3 font-semibold transition-colors flex items-center space-x-1.5 ${
+              activeTab === 'users'
+                ? 'border-b-2 border-amber-500 text-amber-600'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            <span>Staff &amp; Administrators</span>
+          </button>
+        </div>
+
+        {/* Tab 1: School Overview & Details Editing */}
+        {activeTab === 'overview' && (
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base text-slate-900">Institutional Details</CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Update the official name, physical address, and institutional contact channels.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveDetails} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">School Name</label>
+                    <Input
+                      value={school.name || ''}
+                      onChange={(e) => setSchool({ ...school, name: e.target.value })}
+                      required
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">School Code (Immutable Identifier)</label>
+                    <Input
+                      value={school.schoolCode || ''}
+                      disabled
+                      className="bg-slate-50 border-slate-200 text-slate-400 font-mono text-xs h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Official Contact Email</label>
+                    <Input
+                      type="email"
+                      value={school.email || ''}
+                      onChange={(e) => setSchool({ ...school, email: e.target.value })}
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Phone Number</label>
+                    <Input
+                      value={school.phoneNumber || ''}
+                      onChange={(e) => setSchool({ ...school, phoneNumber: e.target.value })}
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-xs font-semibold text-slate-700">Campus Physical Address</label>
+                    <Input
+                      value={school.address || ''}
+                      onChange={(e) => setSchool({ ...school, address: e.target.value })}
+                      placeholder="e.g. 15 Independence Ave, Ridge, Accra"
+                      className="bg-white border-slate-200 text-slate-900 text-xs h-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={savingDetails}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs h-9 px-4 shadow-sm"
+                  >
+                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                    {savingDetails ? 'Saving Changes...' : 'Save School Details'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tab 2: Feature & Module Toggles */}
+        {activeTab === 'modules' && (
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-4">
+              <div>
+                <CardTitle className="text-base text-slate-900">Tenant Feature Flags</CardTitle>
+                <CardDescription className="text-xs text-slate-500">
+                  Enable or disable specific modules for this school tenant according to their package.
+                </CardDescription>
+              </div>
+              <Button
+                onClick={handleSaveModules}
+                disabled={savingModules}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs h-8 px-4 shadow-sm"
+              >
+                <Save className="h-3.5 w-3.5 mr-1" />
+                {savingModules ? 'Saving...' : 'Save Configuration'}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {availableModules.map((mod) => {
+                  const isEnabled = !!moduleConfig[mod.key];
+                  return (
+                    <div
+                      key={mod.key}
+                      onClick={() => toggleModule(mod.key)}
+                      className={`p-3.5 rounded-lg border cursor-pointer transition-all flex items-start justify-between ${
+                        isEnabled
+                          ? 'bg-amber-50/50 border-amber-300 hover:border-amber-400'
+                          : 'bg-slate-50 border-slate-200 hover:border-slate-300 opacity-60'
+                      }`}
+                    >
+                      <div className="space-y-0.5 pr-3">
+                        <div className="text-xs font-semibold text-slate-900 flex items-center space-x-2">
+                          <span>{mod.name}</span>
+                          {isEnabled && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
+                              Enabled
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-500 leading-relaxed">
+                          {mod.desc}
+                        </div>
+                      </div>
+
+                      <div className="flex-shrink-0 pt-0.5">
+                        {isEnabled ? (
+                          <ToggleRight className="h-6 w-6 text-amber-500" />
+                        ) : (
+                          <ToggleLeft className="h-6 w-6 text-slate-300" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tab 3: Subscription & Billing */}
+        {activeTab === 'subscription' && (
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base text-slate-900">SaaS Subscription Management</CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Manage the school's SaaS tier, student quota limits, and billing cycle.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveSubscription} className="space-y-4 max-w-xl">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Subscription Tier</label>
+                  <select
+                    value={subscription.tier}
+                    onChange={(e) => setSubscription({ ...subscription, tier: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-md text-slate-900 text-xs h-9 px-3 focus:border-slate-400"
+                  >
+                    <option value="BASIC">BASIC (Starter Academy - $49/mo)</option>
+                    <option value="PRO">PRO (Professional Institution - $99/mo)</option>
+                    <option value="ENTERPRISE">ENTERPRISE (Campus Unlimited - $199/mo)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Billing Cycle</label>
+                  <select
+                    value={subscription.billingCycle}
+                    onChange={(e) => setSubscription({ ...subscription, billingCycle: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-md text-slate-900 text-xs h-9 px-3 focus:border-slate-400"
+                  >
+                    <option value="MONTHLY">Monthly Billing</option>
+                    <option value="ANNUAL">Annual Billing (20% Discount)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Student Quota Limit</label>
+                  <Input
+                    type="number"
+                    value={subscription.studentLimit}
+                    onChange={(e) => setSubscription({ ...subscription, studentLimit: parseInt(e.target.value, 10) || 0 })}
+                    className="bg-white border-slate-200 text-slate-900 text-xs h-9"
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    Currently utilizing {school._count?.students || 0} enrolled student seats.
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <Button
+                    type="submit"
+                    disabled={savingSub}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs h-9 px-4 shadow-sm"
+                  >
+                    <Save className="h-3.5 w-3.5 mr-1.5" />
+                    {savingSub ? 'Updating...' : 'Update Subscription'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tab 4: Users & Staff */}
+        {activeTab === 'users' && (
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base text-slate-900">School Administrators &amp; Staff</CardTitle>
+              <CardDescription className="text-xs text-slate-500">
+                Users with institutional memberships in this tenant.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {school.memberships && school.memberships.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Name</th>
+                        <th className="py-2.5 px-3">Email</th>
+                        <th className="py-2.5 px-3">Profile Role</th>
+                        <th className="py-2.5 px-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {school.memberships.map((m: any) => (
+                        <tr key={m.id} className="hover:bg-slate-50/80">
+                          <td className="py-2.5 px-3 font-medium text-slate-900">
+                            {m.user?.profile?.firstName} {m.user?.profile?.lastName}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">
+                            {m.user?.email}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                              {m.profile}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <Badge variant={m.status === 'ACTIVE' ? 'success' : 'secondary'}>
+                              {m.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-xs text-slate-400">
+                  No registered staff or administrator accounts found for this school.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </main>
     </div>
   );
 }

@@ -184,7 +184,7 @@ export default function SchoolBillingPage() {
   const currentPlanCode = subscription?.currentPlan?.code || 'PRO';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <SchoolNav />
 
       <main className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl space-y-8">
@@ -259,7 +259,7 @@ export default function SchoolBillingPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-2">
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs space-y-1.5 font-mono">
+              <div className="p-3 rounded-xl bg-slate-50/60 border border-slate-800/80 text-xs space-y-1.5 font-mono">
                 <div className="flex justify-between text-slate-400">
                   <span>Billing ID:</span>
                   <span className="text-slate-200">{subscription?.customerCode || 'CUS_TLS001'}</span>
@@ -543,7 +543,7 @@ export default function SchoolBillingPage() {
                 <p className="text-xs text-slate-400">
                   Your campus has been successfully upgraded to <strong className="text-white">{selectedPlanForUpgrade.name}</strong>.
                 </p>
-                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-slate-300">
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-800 text-xs font-mono text-slate-300">
                   Ref: <span className="text-emerald-400 font-semibold">{paystackRef}</span>
                 </div>
                 <Button
@@ -555,7 +555,7 @@ export default function SchoolBillingPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-800 flex items-center justify-between">
                   <div>
                     <div className="text-xs text-slate-400">Selected Tier</div>
                     <div className="text-sm font-bold text-white">{selectedPlanForUpgrade.name}</div>
@@ -580,7 +580,7 @@ export default function SchoolBillingPage() {
                       className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
                         paymentChannel === 'CARD'
                           ? 'bg-blue-600/20 border-blue-500 text-white'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          : 'bg-slate-50 border-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
                       <CreditCard className="w-4 h-4" />
@@ -592,7 +592,7 @@ export default function SchoolBillingPage() {
                       className={`flex items-center justify-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
                         paymentChannel === 'MOMO'
                           ? 'bg-amber-600/20 border-amber-500 text-white'
-                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                          : 'bg-slate-50 border-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
                       <Smartphone className="w-4 h-4" />
@@ -609,7 +609,7 @@ export default function SchoolBillingPage() {
                       placeholder="e.g. 024 123 4567"
                       value={momoNumber}
                       onChange={(e) => setMomoNumber(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                      className="w-full bg-slate-50 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                     />
                   </div>
                 )}

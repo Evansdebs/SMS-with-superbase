@@ -55,6 +55,19 @@ export class AcademicsController {
     return this.academicsService.createSubject(tenant.schoolId, data);
   }
 
+  @Get('houses')
+  getHouses(@CurrentTenant() tenant: TenantContext) {
+    return this.academicsService.getHouses(tenant.schoolId);
+  }
+
+  @Post('houses')
+  createHouse(
+    @CurrentTenant() tenant: TenantContext,
+    @Body() data: { name: string; color?: string; motto?: string; master?: string },
+  ) {
+    return this.academicsService.createHouse(tenant.schoolId, data);
+  }
+
   @Get('academic-years')
   getAcademicYears(@CurrentTenant() tenant: TenantContext) {
     return this.academicsService.getAcademicYears(tenant.schoolId);

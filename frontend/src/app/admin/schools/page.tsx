@@ -95,7 +95,6 @@ export default function AdminSchoolsPage() {
         tenants.map((t) => (t.id === id ? { ...t, status: nextStatus } : t))
       );
     } catch {
-      // Toggle locally if endpoint is mocking/pending
       setTenants(
         tenants.map((t) => {
           if (t.id === id) {
@@ -109,7 +108,7 @@ export default function AdminSchoolsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <AdminNav />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
@@ -117,22 +116,22 @@ export default function AdminSchoolsPage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
                 Multi-Tenant Oversight
               </span>
-              <span className="text-slate-700">•</span>
-              <span className="text-xs text-slate-400">Platform Directory</span>
+              <span className="text-slate-300">•</span>
+              <span className="text-xs text-slate-500">Platform Directory</span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white mt-1">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 mt-1">
               Registered School Tenants
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-500">
               Manage school organizations, monitor tenant populations, and regulate platform access status.
             </p>
           </div>
 
           <Link href="/admin/schools/new">
-            <Button className="bg-slate-100 hover:bg-white text-slate-950 font-semibold flex items-center space-x-2 shadow-sm">
+            <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center space-x-2 shadow-xs">
               <Plus className="h-4 w-4" />
               <span>Provision New School</span>
             </Button>
@@ -141,32 +140,32 @@ export default function AdminSchoolsPage() {
 
         {/* Metrics Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-slate-900/80 border-slate-800 text-white">
+          <Card className="bg-white border-slate-200 text-slate-900 shadow-xs">
             <CardContent className="p-4">
-              <div className="text-xs font-medium text-slate-400">Total Tenants</div>
-              <div className="text-2xl font-bold text-white mt-1">{tenants.length}</div>
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Tenants</div>
+              <div className="text-2xl font-black text-slate-900 mt-1">{tenants.length}</div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/80 border-slate-800 text-white">
+          <Card className="bg-white border-slate-200 text-slate-900 shadow-xs">
             <CardContent className="p-4">
-              <div className="text-xs font-medium text-slate-400">Active Schools</div>
-              <div className="text-2xl font-bold text-emerald-400 mt-1">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Schools</div>
+              <div className="text-2xl font-black text-emerald-600 mt-1">
                 {tenants.filter((t) => t.status === 'ACTIVE').length}
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/80 border-slate-800 text-white">
+          <Card className="bg-white border-slate-200 text-slate-900 shadow-xs">
             <CardContent className="p-4">
-              <div className="text-xs font-medium text-slate-400">Platform Students</div>
-              <div className="text-2xl font-bold text-amber-400 mt-1">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Platform Students</div>
+              <div className="text-2xl font-black text-amber-700 mt-1">
                 {tenants.reduce((sum, t) => sum + t.studentsCount, 0).toLocaleString()}
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/80 border-slate-800 text-white">
+          <Card className="bg-white border-slate-200 text-slate-900 shadow-xs">
             <CardContent className="p-4">
-              <div className="text-xs font-medium text-slate-400">Active Teachers</div>
-              <div className="text-2xl font-bold text-blue-400 mt-1">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Teachers</div>
+              <div className="text-2xl font-black text-blue-600 mt-1">
                 {tenants.reduce((sum, t) => sum + t.teachersCount, 0)}
               </div>
             </CardContent>
@@ -176,12 +175,12 @@ export default function AdminSchoolsPage() {
         {/* Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6">
           <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Search school name, code, admin..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-slate-900 border-slate-800 text-white placeholder:text-slate-500 focus:border-amber-500"
+              className="pl-9 bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-amber-500 shadow-2xs"
             />
           </div>
 
@@ -189,7 +188,7 @@ export default function AdminSchoolsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs rounded-lg border border-slate-800 bg-slate-900 text-slate-300 outline-none"
+              className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 outline-none shadow-2xs"
             >
               <option value="ALL">All Statuses</option>
               <option value="ACTIVE">Active Only</option>
@@ -200,26 +199,26 @@ export default function AdminSchoolsPage() {
         </div>
 
         {/* Schools Table */}
-        <Card className="bg-slate-900 border-slate-800 overflow-hidden shadow-xl">
+        <Card className="bg-white border-slate-200 overflow-hidden shadow-xs">
           {loading ? (
-            <div className="p-12 text-center text-xs text-slate-400">
+            <div className="p-12 text-center text-xs text-slate-500">
               Loading platform tenants...
             </div>
           ) : filtered.length === 0 ? (
             <div className="p-12 text-center max-w-md mx-auto">
-              <div className="h-12 w-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 mx-auto mb-3">
-                <Building2 className="h-6 w-6 text-slate-300" />
+              <div className="h-12 w-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 mx-auto mb-3">
+                <Building2 className="h-6 w-6 text-amber-600" />
               </div>
-              <h3 className="text-base font-semibold text-white mb-1">
+              <h3 className="text-base font-bold text-slate-900 mb-1">
                 {searchTerm || statusFilter !== 'ALL' ? 'No Matching Schools Found' : 'No Schools Registered Yet'}
               </h3>
-              <p className="text-xs text-slate-400 mb-5">
+              <p className="text-xs text-slate-500 mb-5">
                 {searchTerm || statusFilter !== 'ALL'
                   ? 'Try clearing your search or status filter criteria.'
-                  : 'Your database is clean with zero dummy schools. Use the onboarding wizard to register your first school tenant.'}
+                  : 'Your database has zero dummy schools. Use the onboarding wizard to register your first school tenant.'}
               </p>
               <Link href="/admin/schools/new">
-                <Button className="bg-slate-100 hover:bg-white text-slate-950 font-semibold text-xs shadow-sm">
+                <Button className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-xs">
                   <Plus className="h-4 w-4 mr-1.5" />
                   Provision First School
                 </Button>
@@ -229,7 +228,7 @@ export default function AdminSchoolsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 bg-slate-900/90 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
+                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                     <th className="p-4">School Institution</th>
                     <th className="p-4">Tenant Code</th>
                     <th className="p-4">Status</th>
@@ -239,89 +238,85 @@ export default function AdminSchoolsPage() {
                     <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/80">
+                <tbody className="divide-y divide-slate-100 text-slate-700">
                   {filtered.map((tenant) => {
-                  const isActive = tenant.status === 'ACTIVE';
-                  const isSuspended = tenant.status === 'SUSPENDED';
+                    const isActive = tenant.status === 'ACTIVE';
+                    const isSuspended = tenant.status === 'SUSPENDED';
 
-                  return (
-                    <tr key={tenant.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="p-4">
-                        <Link
-                          href={`/admin/schools/${tenant.id}`}
-                          className="font-bold text-sm text-white hover:text-amber-400 transition-colors flex items-center gap-1.5 group"
-                        >
-                          <span>{tenant.name}</span>
-                          <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                        </Link>
-                        <span className="text-[11px] text-slate-500 block mt-0.5">
-                          Tier: {tenant.plan}
-                        </span>
-                      </td>
-
-                      <td className="p-4 font-mono font-bold text-amber-400">
-                        {tenant.schoolCode}
-                      </td>
-
-                      <td className="p-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                            isActive
-                              ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/60'
-                              : isSuspended
-                              ? 'bg-rose-950/60 text-rose-400 border-rose-800/60'
-                              : 'bg-amber-950/60 text-amber-400 border-amber-800/60'
-                          }`}
-                        >
-                          {tenant.status}
-                        </span>
-                      </td>
-
-                      <td className="p-4">
-                        <div className="font-semibold text-slate-200">
-                          {tenant.studentsCount.toLocaleString()} Students
-                        </div>
-                        <div className="text-[11px] text-slate-500">
-                          {tenant.teachersCount} Faculty Staff
-                        </div>
-                      </td>
-
-                      <td className="p-4 font-mono text-slate-400">{tenant.adminEmail}</td>
-
-                      <td className="p-4 text-slate-500">{tenant.createdAt}</td>
-
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end space-x-2">
-                          <Link href={`/admin/schools/${tenant.id}`}>
-                            <button
-                              title="View School Details"
-                              className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-medium"
-                            >
-                              Manage
-                            </button>
-                          </Link>
-
-                          <button
-                            onClick={() => handleToggleStatus(tenant.id)}
-                            title={isActive ? 'Suspend Access' : 'Activate Access'}
-                            className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors ${
-                              isActive
-                                ? 'border-rose-900/50 text-rose-400 hover:bg-rose-950/50'
-                                : 'border-emerald-900/50 text-emerald-400 hover:bg-emerald-950/50'
-                            }`}
+                    return (
+                      <tr key={tenant.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="p-4">
+                          <Link
+                            href={`/admin/schools/${tenant.id}`}
+                            className="font-bold text-sm text-slate-900 hover:text-amber-700 transition-colors flex items-center gap-1.5 group"
                           >
-                            {isActive ? 'Suspend' : 'Activate'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+                            <span>{tenant.name}</span>
+                            <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                          </Link>
+                          <span className="text-[11px] text-slate-500 block mt-0.5">
+                            Tier: {tenant.plan}
+                          </span>
+                        </td>
+
+                        <td className="p-4 font-mono font-bold text-amber-800">
+                          <span className="bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            {tenant.schoolCode}
+                          </span>
+                        </td>
+
+                        <td className="p-4">
+                          <Badge
+                            variant={isActive ? 'success' : isSuspended ? 'destructive' : 'warning'}
+                          >
+                            {tenant.status}
+                          </Badge>
+                        </td>
+
+                        <td className="p-4">
+                          <div className="font-semibold text-slate-900">
+                            {tenant.studentsCount.toLocaleString()} Students
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            {tenant.teachersCount} Faculty Staff
+                          </div>
+                        </td>
+
+                        <td className="p-4 font-mono text-slate-600">{tenant.adminEmail}</td>
+
+                        <td className="p-4 text-slate-500">{tenant.createdAt}</td>
+
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end space-x-2">
+                            <Link href={`/admin/schools/${tenant.id}`}>
+                              <button
+                                title="View School Details"
+                                className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 transition-colors text-xs font-medium border border-slate-200 shadow-2xs"
+                              >
+                                Manage
+                              </button>
+                            </Link>
+
+                            <button
+                              onClick={() => handleToggleStatus(tenant.id)}
+                              title={isActive ? 'Suspend Access' : 'Activate Access'}
+                              className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-colors ${
+                                isActive
+                                  ? 'border-rose-200 text-rose-700 hover:bg-rose-50'
+                                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                              }`}
+                            >
+                              {isActive ? 'Suspend' : 'Activate'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       </main>
     </div>
   );
