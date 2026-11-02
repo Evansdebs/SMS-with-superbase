@@ -120,14 +120,14 @@ export default function RolesAndPermissionsPage() {
     setLoading(true);
     try {
       const [rolesRes, usersRes, auditRes] = await Promise.all([
-        apiGet<Role[]>('/roles'),
-        apiGet<UserAssignment[]>('/roles/users'),
-        apiGet<AuditLog[]>('/roles/audit-logs'),
+        apiGet<any>('/roles'),
+        apiGet<any>('/roles/users'),
+        apiGet<any>('/roles/audit-logs'),
       ]);
 
-      if (rolesRes.data) setRoles(rolesRes.data);
-      if (usersRes.data) setUsers(usersRes.data);
-      if (auditRes.data) setAuditLogs(auditRes.data);
+      if (rolesRes) setRoles(Array.isArray(rolesRes) ? rolesRes : rolesRes.data || []);
+      if (usersRes) setUsers(Array.isArray(usersRes) ? usersRes : usersRes.data || []);
+      if (auditRes) setAuditLogs(Array.isArray(auditRes) ? auditRes : auditRes.data || []);
     } catch (err: any) {
       console.error('Failed to load roles data:', err);
     } finally {
@@ -177,7 +177,7 @@ export default function RolesAndPermissionsPage() {
   // Duplicate Role
   const handleDuplicateRole = async (role: Role) => {
     try {
-      const res = await apiPost<Role>(`/roles/${role.id}/duplicate`, {
+      const res = await apiPost<any>(`/roles/${role.id}/duplicate`, {
         name: `${role.name} (Copy)`,
         description: `Cloned from ${role.name}. ${role.description}`,
       });
@@ -193,7 +193,7 @@ export default function RolesAndPermissionsPage() {
   // Toggle Active/Inactive
   const handleToggleStatus = async (role: Role) => {
     try {
-      const res = await apiPut<Role>(`/roles/${role.id}/toggle-status`, {});
+      const res = await apiPut<any>(`/roles/${role.id}/toggle-status`, {});
       if (res.data) {
         showFeedback('success', `Role "${role.name}" status updated to ${res.data.status}.`);
         fetchAllData();
